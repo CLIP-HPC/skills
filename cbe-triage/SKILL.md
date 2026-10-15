@@ -5,6 +5,8 @@ description: Triage failed, crashed, killed, hanging, or misbehaving Slurm jobs 
 
 # Triage failed jobs on CBE.next
 
+This skill is for diagnosing your own jobs. HPC support staff investigating other users' jobs from a ticket use `cbe-support-triage`, which builds on this one.
+
 ## Principles
 
 - **Evidence before conclusions.** Keep a list of hypotheses, and attach the evidence for and against each one. Don't declare a cause until the evidence supports it. Say "unclear" when it is.
