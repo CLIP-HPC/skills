@@ -38,7 +38,7 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 
 - High-memory nodes (8 TB) are not in Slurm yet. If a job needs more than one `c` or `g` node's memory, stop and point the user to the HPC Servicedesk.
 - Array indices: 0–3000.
-- `/tmp` inside a job is an in-memory tmpfs. It counts against `--mem` and is deleted when the job ends; put large temporary files in `$SCRATCHDIR`.
+- `/tmp` inside a job is private to the job and lives on the fast BeeGFS filesystem behind `/scratch`. It is deleted when the job ends.
 - Maintenance: one day per month, always announced. Jobs whose `--time` would run into it stay pending with `ReqNodeNotAvail`.
 
 ## Batch template
@@ -73,15 +73,10 @@ Interactive: `srun --pty --time=00:30:00 --cpus-per-task=1 --mem=2G bash`.
 ## Software
 
 - Two sticky module stacks load at sign-in: `EESSI/2025.06` and `CBE/2025.06`. They survive `module purge`. Find software with `module spider <name>` and load it with an explicit `module load <name>/<version>`.
-- Python: use `uv` (`uv venv ~/venvs/<name>`, `uv pip install ...`, or `uv run --with <pkg>`). Conda, mamba, and micromamba are not provided. Create environments in `$HOME` or `/groups`, never on `/scratch`.
-- Containers: Apptainer 1.5.3 (`singularity` is an alias) and Podman 5.8. Prefer Apptainer for batch and GPU jobs. In job scripts, set `APPTAINER_CACHEDIR` and `APPTAINER_TMPDIR` to directories under `$SCRATCHDIR`, and keep long-lived `.sif` files in `$HOME` or `/groups`.
-- Before pulling or downloading anything, check the read-only collections:
-  - Bioconda tool images: `/cvmfs/singularity.galaxyproject.org/all/<tool>:<version>--<build>`
-  - Reference genomes and indexes: `/resources`, `/cvmfs/data.galaxyproject.org`, `/cvmfs/refgenomes-databio.galaxyproject.org`
-  - Mirrored registry images: `/cvmfs/unpacked.cern.ch`
-  - Structural biology software: `/programs` (`source /programs/sbgrid.shrc`)
-  - CVMFS mounts on first access, so list the full repository path directly; `ls /cvmfs` alone may look empty.
-- Licensed software (bring your own license): there is no MATLAB module. Users install it in `$HOME` or `/groups` or use a container. Set `MLM_LICENSE_FILE` or `LM_LICENSE_FILE` in the job script. Whether compute nodes can reach the license server must be confirmed with the HPC Servicedesk.
+- Python: use `uv`. Conda, mamba, and micromamba are not provided.
+- Containers: Apptainer (`singularity` is an alias) and Podman. Prefer Apptainer for batch and GPU jobs.
+- Before pulling or downloading anything, check the read-only collections in `/cvmfs`, `/programs`, and `/resources`.
+- For finding, choosing, and using software, use the `cbe-software` skill.
 
 ## Storage
 
@@ -93,24 +88,19 @@ Interactive: `srun --pty --time=00:30:00 --cpus-per-task=1 --mem=2G bash`.
 | `/resources` | curated reference data, read-only | — | — |
 | `/clustertmp` | exchanging data with workstations or other groups; not job output | unmodified data is deleted automatically | — |
 
-- Staging pattern: authoritative copy in `/groups`, then stage into `$SCRATCHDIR`, compute, copy results back to `/groups`, and clean up. For many jobs on one dataset, use separate stage-in and stage-out jobs connected with `--dependency`.
+- Staging pattern: authoritative copy in `/groups`, then stage into `$SCRATCHDIR`, compute, copy results back to `/groups`, and clean up.
 - Never leave the only copy of results on `/scratch`.
-- Restore deleted files from `.snapshot` (for example `ls /groups/.snapshot`). For anything older than the oldest snapshot, use the HPC Servicedesk.
-- Wider striping for very large shared files can only be set by support.
-
-## Transfers
-
-- Small or medium transfers: `rsync --archive --partial` or `scp` through `cbe.next`. Watch trailing slashes.
-- Large transfers: run them as a batch job, never on the login node. For transfers into or out of the campus, use Globus; ask the HPC Servicedesk for the collection name, which isn't published yet.
-- Azure Storage archives: AzCopy.
-- `rclone`, `xrdcp`/`xrdfs`, and the VOMS tools are not installed yet, and the grid partition isn't configured. Don't plan around them.
+- Never delete or overwrite anything in `/groups` without the user's explicit confirmation of the exact paths.
+- Run large transfers as batch jobs, never on the login node.
+- For filesystem performance, policies, restores, and transfers to or from external endpoints, use the `cbe-data` skill.
 
 ## Diagnose
 
 - Pending: run `squeue --me --start` and `scontrol show job <id> | grep -E "JobState|Reason"`. Common reasons: `Priority`/`Resources` mean wait or shrink the request; `ReqNodeNotAvail` usually means maintenance; `DependencyNeverSatisfied` means cancel and fix; `JobHeldAdmin` means contact support.
 - Priority: fair share with a 7-day half-life plus age. Inspect with `sprio -l -j <id>` and `sshare -l`. There's no preemption.
 - Site tools (on `PATH`): `jobinfo <id>`, `jobeff --me`, `showuserlimits`, `showpartitions -g`, `pestat -p c`, `showjobreasons`, `showuserjobs`.
-- Failed job: check the `.out`/`.err` logs, then `sacct -j <id> --format=JobID,State,ExitCode,Elapsed,AllocCPUS,MaxRSS`, then reproduce with a small input.
+- Failed job: use the `cbe-triage` skill.
+- Slow job, or sizing and optimising resource requests: use the `cbe-tuning` skill.
 
 ## When to stop and hand back to the user
 

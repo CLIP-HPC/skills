@@ -5,7 +5,7 @@ description: Port workloads from legacy CBE (cbe.vbc.ac.at, clip-login-*, clip-*
 
 # Port workloads from legacy CBE to CBE.next
 
-Legacy CBE shuts down on 2026-12-18. After that, data that exists only on legacy CBE is gone, including legacy home directories and `/scratch-cbe`. This skill covers translating and validating workloads. For general CBE.next usage, use the `cbe-next` skill.
+Legacy CBE shuts down on 2026-12-18. After that, data that exists only on legacy CBE is gone, including legacy home directories and `/scratch-cbe`. This skill covers translating and validating workloads. For general CBE.next usage, use the `cbe-next` skill; for software replacements, `cbe-software`; for filesystems and transfers, `cbe-data`.
 
 Facts below reflect the docs as of 2026-10-13. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
 
@@ -50,7 +50,7 @@ Update hostnames in local SSH configs, scripts, and group documentation too.
 
 **The `/scratch` trap:** a legacy script that writes to `/scratch/...` meant the shared exchange area. On CBE.next, that same path is the fast job scratch, where files are deleted after 28 days. Rewrite these paths explicitly. Don't leave a bare `/scratch` path, and prefer `$SCRATCHDIR` for job I/O.
 
-**Per-job temporary space:** on CBE.next, `/tmp` is a private in-memory tmpfs that counts against `--mem`. Legacy scripts that wrote large temporary files to `$TMPDIR`, `/tmp`, or `/dev/shm` need either more `--mem` or a switch to `$SCRATCHDIR`.
+**Per-job temporary space:** on CBE.next, `/tmp` is private to each job and lives on the fast BeeGFS filesystem behind `/scratch`. It is deleted when the job ends. Legacy scripts that used `$TMPDIR` or `/dev/shm` need checking: confirm the variable is set and the path exists in a CBE.next job (`echo $TMPDIR; df -h /tmp /dev/shm`), or switch them to `/tmp`.
 
 ### Copying data
 
