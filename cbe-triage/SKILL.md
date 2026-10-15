@@ -77,6 +77,54 @@ Check whether similar jobs from the same user or group failed at the same time a
 
 A single symptom is not proof. For example, `Killed` can be out of memory or an admin action; check `sacct` and the memory figures before concluding.
 
+## 4a. Watch a running job on its node
+
+For a job that is still running (hanging, slow, or using unexpected resources), observe it on the compute node. You can only SSH to nodes where you have a running job.
+
+**Find the node:** `squeue -j <job-id> -o "%N"`. For a multi-node job, `scontrol show hostnames <nodelist>` lists each node.
+
+**Connect:**
+
+- `ssh <node>` from the login node.
+- Or join the job's allocation: `srun --jobid=<job-id> --overlap --pty bash`.
+
+Either way, your session may count against the job's resources. Keep it light and short.
+
+**Identify the job's processes exactly.** Several jobs from the same and other users share a node, so never pick processes by name, user, or `top` ranking alone. Each job has its own cgroup; use it:
+
+```bash
+scontrol listpids <job-id>                               # PIDs Slurm tracks for the job on this node
+find /sys/fs/cgroup -maxdepth 6 -type d -name "job_<job-id>"   # the job's cgroup directory
+cat /proc/<pid>/cgroup                                   # confirm a PID belongs to job_<job-id>
+```
+
+Treat a process as part of the job only if its cgroup path contains `job_<job-id>`. Step directories (`step_batch`, `step_0`, `step_extern`, and so on) inside the job cgroup separate the batch script from `srun` steps.
+
+**Observe.** Use read-only, sampled commands, never continuous loops left running:
+
+```bash
+ps -o pid,ppid,stat,pcpu,pmem,rss,nlwp,etime,args -p <pid,pid,...>
+top -b -n 3 -d 5 -H -p <pid>                             # threads of one process, 3 samples
+cat <job-cgroup>/memory.current <job-cgroup>/memory.max  # memory used vs limit (cgroup v2)
+cat <job-cgroup>/memory.events                           # oom and oom_kill counts
+cat <job-cgroup>/cpu.stat                                 # CPU usage and throttling
+cat <job-cgroup>/cpuset.cpus.effective                    # CPUs the job may use
+nvidia-smi --query-compute-apps=pid,used_memory --format=csv   # match GPU PIDs to the job's PIDs
+```
+
+What to look for:
+
+| Observation | Likely meaning |
+|---|---|
+| Fewer busy threads than allocated CPUs | Thread setting too low, or a serial bottleneck |
+| More runnable threads than CPUs in `cpuset.cpus.effective` | Oversubscription |
+| `memory.current` close to `memory.max`, or rising `oom` counts | Memory pressure, about to be OOM-killed |
+| Processes in state `D` for long periods | Waiting on I/O (storage or network) |
+| Low CPU and no I/O | Waiting on a lock, network, licence server, or deadlocked |
+| GPU memory used but low utilisation | CPU or I/O bound feeding the GPU |
+
+**Don't change anything.** Never `kill`, signal (`kill -STOP`/`-CONT`), `renice`, or attach debuggers or tracers (`gdb`, `strace`, `perf`, `py-spy`) without the user's explicit approval. They can slow, stop, or crash the job. Never touch processes outside the job's cgroup. Log out when done.
+
 ## 5. Reproduce with a minimal example
 
 Only reproduce after reading the evidence. Then build the smallest case that still fails:

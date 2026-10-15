@@ -45,6 +45,8 @@ Look for:
 
 The `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). The `g` nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs. A request should fit comfortably in one node unless the job is genuinely multi-node.
 
+For a job that is running now, observe it on its compute node: threads actually busy, memory against the limit, processes waiting on I/O, and GPU utilisation. Follow `cbe-triage` step 4a. Identify the job's processes through its cgroup (`job_<job-id>`), not by name, because other jobs share the node. Observe read-only, with a few samples.
+
 ## 3. Choose optimisation levers
 
 | Lever | When | How |
