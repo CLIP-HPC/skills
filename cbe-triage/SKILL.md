@@ -90,15 +90,25 @@ For a job that is still running (hanging, slow, or using unexpected resources), 
 
 Either way, your session may count against the job's resources. Keep it light and short.
 
-**Identify the job's processes exactly.** Several jobs from the same and other users share a node, so never pick processes by name, user, or `top` ranking alone. Each job has its own cgroup; use it:
+**Identify the job's processes exactly.** Several jobs from the same and other users share a node, so never pick processes by name, user, or `top` ranking alone.
+
+Primary method: ask Slurm on the node.
 
 ```bash
-scontrol listpids <job-id>                               # PIDs Slurm tracks for the job on this node
-find /sys/fs/cgroup -maxdepth 6 -type d -name "job_<job-id>"   # the job's cgroup directory
-cat /proc/<pid>/cgroup                                   # confirm a PID belongs to job_<job-id>
+scontrol listpids <job-id>          # PIDs of the job on this node, with their step (batch, 0, 1, ...)
+scontrol listpids <job-id>.<step>   # one step only
 ```
 
-Treat a process as part of the job only if its cgroup path contains `job_<job-id>`. Step directories (`step_batch`, `step_0`, `step_extern`, and so on) inside the job cgroup separate the batch script from `srun` steps.
+Use these PIDs for all further checks.
+
+Alternative and monitoring source: the job's cgroup. Each job has its own cgroup for resource isolation. Use it to confirm a PID, or when `scontrol listpids` isn't available. It's also where the memory, CPU, and OOM figures below come from.
+
+```bash
+cat /proc/<pid>/cgroup                                         # the path must contain job_<job-id>
+find /sys/fs/cgroup -maxdepth 6 -type d -name "job_<job-id>"   # the job's cgroup directory
+```
+
+Step directories inside the job cgroup (`step_batch`, `step_0`, `step_extern`, and so on) separate the batch script from `srun` steps.
 
 **Observe.** Use read-only, sampled commands, never continuous loops left running:
 
