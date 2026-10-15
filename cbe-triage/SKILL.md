@@ -127,8 +127,13 @@ Environment:
 ```
 
 - Never include passwords, keys, certificates, tokens, or confidential file contents. Point to paths instead.
-- Create the ticket with the Atlassian connector (`createJiraIssue` on `vbc.atlassian.net`) in the HPC Servicedesk project. Use the issue type that `getJiraProjectIssueTypesMetadata` reports. TODO(confirm): the project key and request type.
-- If the connector isn't available, or the user has no permission to create issues through the API, give the user the finished text to paste into the HPC Servicedesk portal: https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6.
+- Create the ticket with the Atlassian connector (`createJiraIssue`) on `vbc.atlassian.net`:
+  - project `ISD` (IT Service Desk);
+  - issue type `Support`;
+  - request type **CLIP Support** (ID `30`) in the field `customfield_10010`.
+
+  Use **CLIP Software** (ID `31`) for a software installation request, and **CLIP Account** (ID `29`) for account or access problems.
+- If the connector isn't available, or the user has no permission to create issues through the API, give the user the finished text to paste into the portal form for that request type: https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/30 (CLIP Support), `/create/31` (CLIP Software), or `/create/29` (CLIP Account).
 - ÖAW users can also write to contact@clip.science. For quick operational questions, there's the CBE.next MS Teams channel.
 
 ## Details (fetch as Markdown)
