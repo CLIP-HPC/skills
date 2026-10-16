@@ -13,6 +13,7 @@ The goal is a plan the user agrees to, backed by measurements. Don't rewrite pro
 - **Propose, then act.** Present the plan and wait for the user's go-ahead before changing scripts or submitting test jobs.
 - **Keep experiments small.** Every test job uses a small but representative input: same tool, same parameters, same file types, a fraction of the data. Never benchmark with the full production dataset.
 - **Keep the cluster usable.** Throttle test arrays (`--array=...%4`), set tight `--time` values, and cancel experiments that clearly won't answer the question.
+- **Query Slurm sparingly.** Every `squeue`, `sacct`, `sinfo`, `scontrol`, or site-tool call loads the shared scheduler, and Slurm rate-limits heavy users. No `watch squeue` or tight polling loops: check every few minutes at most, query all jobs at once (`squeue --me`), and keep `sacct` time windows narrow.
 - **One change at a time.** Change one variable per comparison, so the effect can be attributed.
 - **Simple first.** Prefer job arrays and right-sizing over MPI or code changes.
 
@@ -43,7 +44,7 @@ Look for:
 - **Queue wait** (`sacct ... --format=Submit,Start`). Long waits often mean oversized requests, not a busy cluster; check `sprio -l -j <id>` and `sshare -l`.
 - **Variation** across inputs of different sizes. That suggests sizing per input class.
 
-The `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). The `g` nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs. A request should fit comfortably in one node unless the job is genuinely multi-node.
+Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and set `--mem` explicitly. A request should fit comfortably in one node unless the job is genuinely multi-node.
 
 For a job that is running now, observe it on its compute node: threads actually busy, memory against the limit, processes waiting on I/O, and GPU utilisation. Follow `cbe-triage` step 4a. Identify the job's processes with `scontrol listpids <job-id>`, not by name, because other jobs share the node. The job's cgroup (`job_<job-id>`) gives the memory and CPU figures. Observe read-only, with a few samples.
 
@@ -64,7 +65,7 @@ For a job that is running now, observe it on its compute node: threads actually 
 | GPU choice | GPU memory need is small, or the GPU is idle much of the time | Use a MIG slice (`gpu:nvidia_b200_1g.23gb`, 23 GB) instead of a full B200; set CPUs and memory explicitly |
 | Container overhead | Image pulled per job | Pull once to a `.sif` in `$HOME` or `/groups`, or use an image from `/cvmfs` |
 
-Per-job `/tmp` and `$SCRATCHDIR` are on the same fast BeeGFS filesystem. Use per-job `/tmp` for files that should disappear with the job, and `$SCRATCHDIR` for data shared between jobs or steps.
+Per-job `/tmp` (`$TMPDIR`) and `$SCRATCHDIR` are on the same fast BeeGFS filesystem. Use `/tmp` for files that should disappear with the job, and `$SCRATCHDIR` for data shared between jobs or steps. `/dev/shm` is faster still, but it's part of the job's memory. Use it for many small files created and deleted in a tight loop, or small caches, and add its size to `--mem`.
 
 ## 4. Parameter sweeps (only with user consent)
 

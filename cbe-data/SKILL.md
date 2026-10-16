@@ -5,7 +5,7 @@ description: How to use the filesystems on CBE.next, the Vienna BioCenter HPC cl
 
 # Data and filesystems on CBE.next
 
-Facts below reflect the docs as of 2026-10-13. Items marked *not available yet* may have changed.
+Facts below reflect the docs as of 2026-10-16. Items marked *not available yet* may have changed.
 
 ## Hard rules
 
@@ -18,7 +18,7 @@ Facts below reflect the docs as of 2026-10-13. Items marked *not available yet* 
 - Never use a `/groups` path as the target of a destructive glob or variable that might be empty, for example `rm -rf "$OUTDIR"/`. Check the variable first.
 - Snapshots and backups exist, but they don't make deletion safe: restores take time, and the newest changes may not be captured yet.
 - In `/clustertmp`, delete only what you staged yourself in this session. It's a shared area that all campus users can write to.
-- Never leave the only copy of anything important on `/scratch`, in per-job `/tmp`, or in `/clustertmp`. All three are deleted automatically.
+- Never leave the only copy of anything important on `/scratch`, in per-job `/tmp` or `/dev/shm`, or in `/clustertmp`. All of them are deleted automatically.
 - Never put passwords, tokens, keys, or SAS URLs in job scripts or logs.
 
 ## Filesystems
@@ -27,9 +27,10 @@ Facts below reflect the docs as of 2026-10-13. Items marked *not available yet* 
 |---|---|---|---|---|
 | `$HOME` (`/users/$USER`) | CBE.next home, separate from legacy CBE | scripts, config, environments, small files | persistent; hourly, daily, and weekly snapshots in `/users/.snapshot`; backup kept 180 days | `quota -s` |
 | `$SCRATCHDIR` (`/scratch/users/$USER`) | all-flash BeeGFS, about 1,200 TB | large active job data and intermediates | files deleted after 28 days; no snapshots or backup | `du -sh $SCRATCHDIR` |
-| `/tmp` inside a job | private per-job directory on the BeeGFS behind `/scratch` | per-job temporary files | deleted when the job ends | — |
+| `/tmp` (`$TMPDIR`) and `/var/tmp` inside a job | private per-job directories on the BeeGFS behind `/scratch` | a job's temporary files | deleted when the job ends | — |
+| `/dev/shm` inside a job | private per-job RAM filesystem; counts against `--mem` | many small temporary files, small caches read repeatedly | deleted when the job ends | — |
 | `/groups/<group>` | campus group storage, also reachable from workstations (`\\storage.vbc.ac.at\groups\<group>`) | permanent research data, shared input, retained results | persistent; hourly snapshots in `/groups/.snapshot`; backup kept 180 days; quota per group | `quota -s`, or https://apps.vbc.ac.at/quotas/ |
-| `/clustertmp` | campus exchange share (`\\storage.vbc.ac.at\clustertmp`), 250 TB | exchanging data with workstations or other groups; not job output | no backup; unmodified data deleted automatically after about 30 days (see the note at the end) | — |
+| `/clustertmp` | campus exchange share (`\\storage.vbc.ac.at\clustertmp`), 250 TB | exchanging data with workstations or other groups; not job output | no backup; unmodified data deleted automatically after 28 days | — |
 | `/resources` | curated reference data, read-only | genomes and indexes | — | — |
 | `/resources/ngs/<group>/<request_id>/` | NGS archive (GMI groups): demultiplexed data from the NGS facility | reading archived sequencing data | read-only; fully backed up | access is granted per group by IT |
 | `/eos`, `/cvmfs`, `/programs` | EOS (HEP users), software and reference repositories, SBGrid | see the `cbe-software` skill for `/cvmfs` and `/programs` | — | — |
@@ -42,6 +43,7 @@ Facts below reflect the docs as of 2026-10-13. Items marked *not available yet* 
 - An IO500 run with 8 nodes measured 155 GiB/s overall, up to 607 GiB/s large-file write, and 289 GiB/s shared-file read. A single job sees less when the filesystem is busy.
 - The default stripe count is 1: each file lives on one storage target. That suits many small and medium files. Very large files that many nodes read or write at once (MPI-IO, multi-node checkpoints) benefit from wider striping, which only support can set on a directory.
 - Jobs that read and write heavily should stage their input to `$SCRATCHDIR` (or per-job `/tmp`) instead of working directly on `/groups`.
+- `/dev/shm` is faster still, but it's part of the job's memory. Use it for many small files created and deleted in a tight loop, or small caches, and size `--mem` to include it.
 
 ### `/groups` (campus storage)
 
@@ -56,7 +58,7 @@ Facts below reflect the docs as of 2026-10-13. Items marked *not available yet* 
 
 1. Keep the authoritative input in `/groups`.
 2. Stage only the input the job needs into `$SCRATCHDIR`. For many jobs sharing one dataset, use separate stage-in and stage-out jobs linked with `--dependency=afterok:<id>`.
-3. Write intermediates to `$SCRATCHDIR` or per-job `/tmp`.
+3. Write intermediates to `$SCRATCHDIR`, and temporary files to per-job `/tmp` or `/dev/shm`.
 4. Write logs somewhere that survives the job (`$HOME` or `/groups`).
 5. Copy the results you need to `/groups`, into a subfolder per task.
 6. Archive finished results that no longer need active storage.
@@ -94,7 +96,7 @@ ls /users/.snapshot
 | Other institutes, large data | Globus | No Globus client on CBE.next. The collection name isn't published yet; ask the HPC Servicedesk. |
 | Azure archive (cold data) | AzCopy | See below. |
 | External collaborators, small data | ACOnet FileSender (https://filesender.aco.net/) | Browser-based; up to 90 files and 250 GB per transfer. |
-| S3, Azure Blob, SharePoint/OneDrive, WebDAV, SFTP | `rclone` | *Not available yet.* Use `rsync`, `scp`, or AzCopy meanwhile. |
+| S3, Azure Blob, SharePoint/OneDrive, WebDAV, SFTP | `rclone` | Configure a remote once with `rclone config` (stored in `$HOME`). Use `rclone copy`, run large copies as batch jobs, and verify with `rclone check`. `rclone sync` deletes files at the destination: dry-run first (`--dry-run`) and get approval. |
 | EOS, XRootD, VOMS (HEP) | `/eos` FUSE mount; `eos` client on login nodes | `xrdcp`, `xrdfs`, and the VOMS tools are *not available yet*; the grid partition isn't configured. |
 
 Before a large transfer, confirm the source, destination, and free quota. After it, verify file counts and checksums, or rely on the tool's own verification (`rclone check`, AzCopy `--put-md5`).
@@ -128,4 +130,3 @@ Support: the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/por
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md
 - https://docs.vbc.ac.at/data-services/<page>/index.md, where `<page>` is one of `storage`, `storage-best-practices`, `storage-parallelization`, `storage-quotas`, `group-folder-structure`, `group-folder-permissions`, `azure-archive`, `use-azcopy-on-cbe`, `ngs-archive`, `aconet-filesender`.
 
-Note: the docs give two lifetimes for `/clustertmp`, "four weeks" and "30 days", for unmodified data. Treat it as about four weeks.

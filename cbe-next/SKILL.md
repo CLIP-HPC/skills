@@ -1,11 +1,11 @@
 ---
 name: cbe-next
-description: How to work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login atlas.cbenext.vbc.ac.at, nodes cbe-c3-*/cbe-g5-*). Covers Slurm sbatch/srun and job arrays, partitions c and g, NVIDIA B200 GPUs and MIG slices, modules (EESSI and CBE stacks), Apptainer/Podman containers, uv Python environments, storage ($HOME, /scratch, $SCRATCHDIR, /groups, /resources, /clustertmp), data transfer, and OpenOnDemand. Use whenever connecting to, submitting jobs on, installing software on, or moving data to or from CBE.next.
+description: How to work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login atlas.cbenext.vbc.ac.at, nodes cbe-c3-*/cbe-g5-*/cbe-m3-*). Covers Slurm sbatch/salloc/srun and job arrays, partitions c, g, and m, Slurm accounts, NVIDIA B200 GPUs and MIG slices, modules (EESSI and CBE stacks), Apptainer containers, uv Python environments, storage ($HOME, /scratch, $SCRATCHDIR, /groups, /resources, /clustertmp), data transfer, and OpenOnDemand. Use whenever connecting to, submitting jobs on, installing software on, or moving data to or from CBE.next.
 ---
 
 # CBE.next
 
-Facts below reflect the CBE.next docs as of 2026-10-13. Values marked *not configured yet* may have changed; prefer what the cluster reports (`sinfo`, `showuserlimits`, `module spider`).
+Facts below reflect the CBE.next docs as of 2026-10-16. Values marked *not configured yet* may have changed; prefer what the cluster reports (`sinfo`, `showuserlimits`, `module spider`).
 
 Legacy CBE is a different system that shuts down on 2026-12-18. You can recognise it by the hostnames `cbe.vbc.ac.at`, `clip-login-0/1.cbe.vbc.ac.at`, and `clip-*` compute nodes, and by the `/scratch-cbe` path. Don't apply its instructions here. Watch out for `/scratch`: on legacy CBE it was the 30-day exchange area that is now `/clustertmp`, while on CBE.next `/scratch` is the job scratch (`$SCRATCHDIR`).
 
@@ -14,7 +14,7 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 - SSH alias `cbe.next` points to `atlas.cbenext.vbc.ac.at`. From outside the campus, go through the jump host `sshjump.vbc.ac.at` (`ssh -J sshjump.vbc.ac.at atlas.cbenext.vbc.ac.at`).
 - Authentication uses a 16-hour SSH certificate held in the user's `ssh-agent`. If SSH fails with an auth error, ask the user to run `step ssh login vbc-cbe` (unmanaged devices: `step ssh login --provisioner=VBC_user vbc-cbe`). You can't renew it yourself.
 - If SSH asks to accept a host key, stop and don't accept it. Tell the user to report it in the CBE.next MS Teams channel.
-- Browser access: OpenOnDemand at https://ood.atlas.cbenext.vbc.ac.at/ offers Jupyter, RStudio Server, and code-server; there is no remote desktop. Use it for GUI and notebook work, not X11 in batch jobs.
+- Browser access: OpenOnDemand at https://ood.atlas.cbenext.vbc.ac.at/ offers Jupyter, RStudio Server, code-server, and a Remote Desktop (the replacement for XPRA). Use it for GUI and notebook work, not X11 in batch jobs.
 
 ## Rules
 
@@ -28,6 +28,8 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 - Never put passwords, tokens, or private keys in job scripts or support requests.
 - Don't override `UCX_NET_DEVICES` or `NCCL_IB_HCA`; Slurm sets them for the RoCE network.
 - Mail notifications don't work (`--mail-type` has no effect). Chain follow-up work with `--dependency=afterok:<job-id>`.
+- Query Slurm sparingly. Every `squeue`, `sacct`, `sinfo`, `scontrol`, or site-tool call loads the shared scheduler, and Slurm rate-limits users who send too many. Never use `watch squeue` or tight polling loops: check every few minutes at most, query all jobs at once (`squeue --me`), and use `--dependency` instead of waiting scripts.
+- Accounts: jobs run under the user's default Slurm account. Users in several labs or groups can choose one with `-A <account>`. Check memberships with `sacctmgr show user $USER withassoc format=DefaultAccount%30,Account%30`.
 
 ## Partitions and nodes
 
@@ -35,10 +37,14 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 |---|---|---|---|---|---|
 | `c` (default) | `cbe-c3-[1-18]` | 192 (AMD Zen 5, no SMT) | about 754 GB | 3,800 MB | none |
 | `g` | `cbe-g5-[1-8]` | 192 | about 1.5 TB | 7,600 MB | 8× B200 (4 full + 28 MIG slices per node) |
+| `m` | `cbe-m3-[1-4]` | 160 (4× Intel Xeon Platinum 8460H) | about 7.9 TB | 3,800 MB | none |
 
-- High-memory nodes (8 TB) are not in Slurm yet. If a job needs more than one `c` or `g` node's memory, stop and point the user to the HPC Servicedesk.
+- Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Always request the memory explicitly, for example `--mem=2T`; the default per CPU is the same as on `c`.
+- No node uses SMT, so one Slurm CPU is one physical core.
 - Array indices: 0–3000.
-- `/tmp` inside a job is private to the job and lives on the fast BeeGFS filesystem behind `/scratch`. It is deleted when the job ends.
+- Per-job temporary storage, both deleted when the job ends:
+  - `/tmp` (`$TMPDIR`) and `/var/tmp`: private, on the fast BeeGFS filesystem behind `/scratch`. The best place for a job's temporary files.
+  - `/dev/shm`: private, in the job's memory. Very fast, but everything written there counts against `--mem`. Use it for many small temporary files or small caches.
 - Maintenance: one day per month, always announced. Jobs whose `--time` would run into it stay pending with `ReqNodeNotAvail`.
 
 ## Batch template
@@ -59,7 +65,7 @@ srun <application> <input-file>
 
 Create `logs/` before submitting. For arrays, use `--array=0-N%K` and `--output=logs/%x-%A_%a.out`.
 
-Interactive: `srun --pty --time=00:30:00 --cpus-per-task=1 --mem=2G bash`.
+Interactive: `salloc --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `salloc` without a command opens a shell directly on the compute node; `exit` ends the allocation.
 
 ## GPUs (partition `g`)
 
@@ -74,7 +80,7 @@ Interactive: `srun --pty --time=00:30:00 --cpus-per-task=1 --mem=2G bash`.
 
 - Two sticky module stacks load at sign-in: `EESSI/2025.06` and `CBE/2025.06`. They survive `module purge`. Find software with `module spider <name>` and load it with an explicit `module load <name>/<version>`.
 - Python: use `uv`. Conda, mamba, and micromamba are not provided.
-- Containers: Apptainer (`singularity` is an alias) and Podman. Prefer Apptainer for batch and GPU jobs.
+- Containers: Apptainer only (`singularity` is an alias). Images are built outside CBE.next, or by IT from a Git repository, and pulled from a registry.
 - Before pulling or downloading anything, check the read-only collections in `/cvmfs`, `/programs`, and `/resources`.
 - For finding, choosing, and using software, use the `cbe-software` skill.
 
@@ -108,7 +114,7 @@ Stop for:
 
 - quota, permission, or I/O errors you can't explain;
 - software still missing after `module spider`;
-- memory needs beyond a single node;
+- memory needs beyond a single `m` node (about 7.9 TB);
 - multi-terabyte transfers;
 - SSH certificate or host key problems;
 - `JobHeldAdmin`.

@@ -7,7 +7,7 @@ description: Port workloads from legacy CBE (cbe.vbc.ac.at, clip-login-*, clip-*
 
 Legacy CBE shuts down on 2026-12-18. After that, data that exists only on legacy CBE is gone, including legacy home directories and `/scratch-cbe`. This skill covers translating and validating workloads. For general CBE.next usage, use the `cbe-next` skill; for software replacements, `cbe-software`; for filesystems and transfers, `cbe-data`.
 
-Facts below reflect the docs as of 2026-10-13. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
+Facts below reflect the docs as of 2026-10-16. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
 
 ## How to work
 
@@ -50,7 +50,7 @@ Update hostnames in local SSH configs, scripts, and group documentation too.
 
 **The `/scratch` trap:** a legacy script that writes to `/scratch/...` meant the shared exchange area. On CBE.next, that same path is the fast job scratch, where files are deleted after 28 days. Rewrite these paths explicitly. Don't leave a bare `/scratch` path, and prefer `$SCRATCHDIR` for job I/O.
 
-**Per-job temporary space:** on CBE.next, `/tmp` is private to each job and lives on the fast BeeGFS filesystem behind `/scratch`. It is deleted when the job ends. Legacy scripts that used `$TMPDIR` or `/dev/shm` need checking: confirm the variable is set and the path exists in a CBE.next job (`echo $TMPDIR; df -h /tmp /dev/shm`), or switch them to `/tmp`.
+**Per-job temporary space:** on CBE.next, each job gets a private `/tmp` (`$TMPDIR`, also `/var/tmp`) on the fast BeeGFS filesystem, and a private `/dev/shm` in its memory that counts against `--mem`. Both are deleted when the job ends. Legacy scripts that wrote large temporary files to `/dev/shm` need more `--mem`, or should switch to `$TMPDIR`.
 
 ### Copying data
 
@@ -70,7 +70,8 @@ rsync --archive --partial --info=progress2 /clustertmp/<user>/migration/my-proje
 ```
 
 - For group data, stage in `/groups/<group>`.
-- Remove the staged copy from `/clustertmp` afterwards, because it's a shared area.
+- Before removing any copy, verify the new one is complete: `rsync --archive --checksum --dry-run --itemize-changes <staged>/ <final>/` copies nothing and lists every missing or different file. Repeat the copy until the list is empty. Do the same check on legacy CBE, between the original and the staged copy.
+- Remove the staged copy from `/clustertmp` afterwards, because it's a shared area. Ask the user first.
 - Clean up before copying: keep code, scripts, configuration, and needed inputs. Don't copy old logs, intermediates, failed runs, or whole scratch trees.
 - For multi-terabyte data, stop and ask the user to check with the CBE.next MS Teams channel first.
 
@@ -81,7 +82,7 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | Legacy CBE | CBE.next |
 |---|---|
 | `--partition=c` | `c`, the default; the line can stay or go |
-| `--partition=m` | No high-memory partition yet (*not final*). Stop and point the user to the HPC Servicedesk. Don't move high-memory jobs to `g`. |
+| `--partition=m` | `m`: four nodes with about 7.9 TB each. Always set `--mem` explicitly (for example `--mem=2T`); the default per CPU is only 3,800 MB. Don't move high-memory jobs to `g`. |
 | `--partition=g` | `g` |
 | `--gres=gpu:<p100\|v100\|rtx\|a100>:N`, or untyped | `--gres=gpu:nvidia_b200:N` for a full B200 (about 180 GB), or `--gres=gpu:nvidia_b200_1g.23gb:1` for a MIG slice (23 GB, single GPU only) |
 | `--qos=c_short`, `m_long`, `g_rapid`, and similar | Remove. Only `normal` exists; the new QOS scheme is *not final*. |
@@ -89,6 +90,8 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | implicit time limit from QOS (`rapid` 1 h, `short` 8 h, `medium` 2 days, `long` 14 days) | Always set an explicit `--time`. Carry over the old effective limit, or better, measured runtime plus a margin. |
 | `--nodelist`, `--exclude`, `--constraint` with `clip-c*`, `clip-g*`, `clip-m*` | Remove. Request generic resources. |
 | `--reservation=...` (interactive) | Remove. The interactive reservations don't exist yet. |
+| `srun --pty bash` for interactive work | `salloc --time=<t> --cpus-per-task=<n> --mem=<m>`, which opens a shell on the compute node |
+| implicit default account | Jobs use the user's default Slurm account. Users in several labs or groups add `-A <account>`. |
 | `--mail-type`, `--mail-user` | No effect; there's no mail. Use `--dependency=afterok:<id>` for follow-up work, or tell the user to check `squeue --me` or `jobinfo`. |
 
 **Resource sizing:**
@@ -121,7 +124,7 @@ Record the old and new module names and versions for each workflow, so the user 
 |---|---|
 | JupyterHub | OpenOnDemand Jupyter (https://ood.atlas.cbenext.vbc.ac.at/). Register custom environments as kernels. |
 | RStudio | OpenOnDemand RStudio Server |
-| XPRA or remote desktop | No remote desktop. Use Jupyter, RStudio, or code-server in OpenOnDemand. |
+| XPRA or remote desktop | OpenOnDemand Remote Desktop: a Linux desktop in the browser, running as a Slurm job. |
 | X11 in batch or interactive jobs | Don't port. Use OpenOnDemand. |
 
 ## Validate
@@ -153,7 +156,7 @@ Suggest labelling or removing the legacy script once the group confirms the new 
 
 Stop for:
 
-- high-memory jobs (legacy partition `m`) or grid jobs (`grid_generic`), which have no CBE.next target yet;
+- grid jobs (`grid_generic`), which have no CBE.next target yet;
 - multi-terabyte transfers;
 - software with no equivalent after `module spider`;
 - license server access;

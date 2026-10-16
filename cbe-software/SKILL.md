@@ -1,11 +1,11 @@
 ---
 name: cbe-software
-description: Find, choose, and use software on CBE.next, the Vienna BioCenter HPC cluster. Covers Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, module collections), CVMFS repositories (Galaxy BioContainers, Galaxy and Refgenie reference data, CERN unpacked container images, grid experiment software), SBGrid in /programs, Apptainer and Podman containers, uv Python environments (no conda), and bring-your-own-license software such as MATLAB. Use whenever the user asks whether a tool is available, how to install or load it, or how to run it on CBE.next.
+description: Find, choose, and use software on CBE.next, the Vienna BioCenter HPC cluster. Covers Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, module collections), CVMFS repositories (Galaxy BioContainers, Galaxy and Refgenie reference data, CERN unpacked container images, grid experiment software), SBGrid in /programs, Apptainer containers (including building images outside CBE.next), uv Python environments (no conda), and bring-your-own-license software such as MATLAB. Use whenever the user asks whether a tool is available, how to install or load it, or how to run it on CBE.next.
 ---
 
 # Software on CBE.next
 
-Facts below reflect the docs as of 2026-10-13. Prefer what the cluster reports (`module spider`, directory listings) over this file.
+Facts below reflect the docs as of 2026-10-16. Prefer what the cluster reports (`module spider`, directory listings) over this file.
 
 ## Where software comes from
 
@@ -22,7 +22,9 @@ Facts below reflect the docs as of 2026-10-13. Prefer what the cluster reports (
 | Curated reference data | `/resources` | Genomes and indexes |
 | Your own | containers you pull or build; `uv` environments; binaries in `$HOME` or `/groups` | Anything not provided above |
 
-Not provided: conda, mamba, and micromamba; a MATLAB module; an AzCopy module; `rclone` (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
+Installed tools worth knowing: `uv`, Apptainer, and `rclone`.
+
+Not provided: conda, mamba, and micromamba; Podman; a MATLAB module; an AzCopy module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
 
 ## Search in this order
 
@@ -71,8 +73,7 @@ which <executable>
 
 ## Use containers
 
-- Apptainer 1.5.3 (`singularity` is the same binary) and Podman 5.8.
-- Prefer Apptainer for batch and GPU jobs; use Podman for Docker-style builds from a `Containerfile`.
+- CBE.next runs containers with Apptainer 1.5.3 only (`singularity` is the same binary). There's no Podman.
 - Run containers inside Slurm jobs, not on the login node.
 
 ```bash
@@ -87,8 +88,13 @@ apptainer exec python_3.13-slim.sif python --version
 - Home and the working directory are bind-mounted automatically. Bind other paths explicitly: `--bind /scratch/users/${USER}` or `--bind /groups/<group>`.
 - Images under `/cvmfs` run directly. Don't copy them.
 - GPUs: use `--nv`. Never use `--cleanenv` on GPU nodes; it drops `CUDA_VISIBLE_DEVICES`. If a clean environment is needed, use `--env CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}"`.
-- Podman to Apptainer: run `podman save`, then `apptainer build image.sif docker-archive:<file>.tar`.
-- Clean up Podman images with `podman system prune`, but ask the user first.
+
+### Use your own image
+
+Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay. You can't build images from a definition file on CBE.next yet. Instead:
+
+- build the image outside CBE.next, push it to a registry, and pull it: `apptainer pull my-tool_1.0.sif docker://<registry>/<namespace>/my-tool:1.0`;
+- or let IT build it from a Git repository: see the "Singularity image builds" and "Docker image builds" pages under `hosting-publishing/build-automation/` in the docs.
 
 ## Python
 

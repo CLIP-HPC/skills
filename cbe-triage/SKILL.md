@@ -13,6 +13,7 @@ This skill is for diagnosing your own jobs. HPC support staff investigating othe
 - **Compare with what worked.** A previous successful run of the same or a similar job is the best reference.
 - **Reproduce minimally.** Reproduce with the smallest input and the smallest resources that still show the problem. Never resubmit the full production job to "see if it happens again".
 - **Read-only first.** Diagnose without changing data. Don't delete or overwrite outputs, inputs, or anything in `/groups` (see the `cbe-data` skill).
+- **Query Slurm sparingly.** Every `squeue`, `sacct`, `sinfo`, `scontrol`, or site-tool call loads the shared scheduler, and Slurm rate-limits heavy users. No `watch squeue` or tight polling loops: check every few minutes at most, query all jobs at once (`squeue --me`), and keep `sacct` time windows narrow.
 - **Escalate when needed.** If the cause stays unclear, or fixing it needs action on the cluster, prepare an HPC Servicedesk ticket.
 
 ## 1. Collect the facts
@@ -66,6 +67,7 @@ Check whether similar jobs from the same user or group failed at the same time a
 | Suspect | Evidence to look for |
 |---|---|
 | Quota exceeded | `Disk quota exceeded` or `No space left on device` in logs; `quota -s`; group usage at https://apps.vbc.ac.at/quotas/ |
+| `/dev/shm` use | Out-of-memory although the program's own memory looks fine: files in `/dev/shm` count against `--mem` |
 | Scratch deletion | Missing inputs on `/scratch` older than 28 days, or missing staged data in `/clustertmp` |
 | Permissions | `Permission denied` on `/groups`. Remember that `chmod` is ignored; access comes from ACLs, so it isn't fixable by the agent |
 | Node failure | `NODE_FAIL`; the same node in several failing jobs; `sinfo -R` lists down or drained nodes with reasons; `pestat -p <partition>` |
@@ -201,6 +203,7 @@ Environment:
 All research-computing pages are relevant. Start with:
 
 - https://docs.vbc.ac.at/research-computing/cbe/troubleshooting-and-support/index.md
+- https://docs.vbc.ac.at/research-computing/ssh-troubleshooting/index.md (SSH and certificate problems)
 - https://docs.vbc.ac.at/research-computing/cbe/slurm-jobs/index.md (pending reasons, site tools)
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/gpu-jobs/index.md
