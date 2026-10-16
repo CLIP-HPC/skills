@@ -79,7 +79,7 @@ Interactive: `salloc --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `
 ## Software
 
 - Two sticky module stacks load at sign-in: `EESSI/2025.06` and `CBE/2025.06`. They survive `module purge`. Find software with `module spider <name>` and load it with an explicit `module load <name>/<version>`.
-- Python: use `uv`. Conda, mamba, and micromamba are not provided.
+- Python: `uv` for Python-only projects; conda from the global Miniforge (conda-forge only) for other dependencies. Never Anaconda, Miniconda, or the `defaults` channel (license terms). Use `conda`, not `mamba -n`, which fails on CBE.next.
 - Containers: Apptainer only (`singularity` is an alias). Images are built outside CBE.next, or by IT from a Git repository, and pulled from a registry.
 - Before pulling or downloading anything, check the read-only collections in `/cvmfs`, `/programs`, and `/resources`.
 - For finding, choosing, and using software, use the `cbe-software` skill.
@@ -123,4 +123,4 @@ Support: the CBE.next MS Teams channel for operational questions, or the HPC Ser
 
 ## Details (fetch as Markdown)
 
-https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of: `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `storage-and-data`, `openondemand-web-applications`, `bring-your-own-license`, `troubleshooting-and-support`, `change-notes`.
+https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of: `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `containers`, `python-and-conda`, `storage-and-data`, `transfer-data`, `openondemand-web-applications`, `bring-your-own-license`, `troubleshooting-and-support`, `change-notes`.

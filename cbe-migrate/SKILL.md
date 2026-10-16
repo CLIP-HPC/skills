@@ -109,12 +109,12 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | `/software/...` paths, `/software/2020` tree, `foss-2018b` and `foss-2019b` toolchains | Gone. Find replacements with `module spider <name>` in the default stacks `EESSI/2025.06` and `CBE/2025.06`, which are always loaded. |
 | `ml load <name>/<version>` | Same Lmod syntax, but module names and versions differ. Check each one. |
 | saved module collections (`module restore`) | Not portable. Rebuild them with `module save`. |
-| conda, mamba, micromamba environments | Not available. Use `uv` for Python (`uv venv`, `uv pip install -r requirements.txt`). For Bioconda tools, use the prebuilt images in `/cvmfs/singularity.galaxyproject.org/all/`. For complex stacks, build an Apptainer container. |
+| conda, mamba, micromamba environments | Use the global Miniforge on CBE.next (conda-forge only). Re-create environments from an export (below). For Bioconda tools, the prebuilt images in `/cvmfs/singularity.galaxyproject.org/all/` are an alternative. Python-only projects can move to `uv`. |
 | Singularity containers | `singularity` is an alias for Apptainer 1.5.3. Rebuild images that depend on legacy paths, drivers, MPI, or module trees. Use `--nv` for GPUs, never `--cleanenv` on GPU nodes. |
 | MATLAB module | No module. Bring your own license: the user installs MATLAB or uses a container, and `MLM_LICENSE_FILE` goes in the job script. |
 | private copies of reference genomes or indexes | Check `/resources` and `/cvmfs/data.galaxyproject.org` first. |
 
-**Conda environments:** export the package list on legacy CBE (`conda env export` or `pip freeze`) and recreate it, don't copy the environment directory. Create environments in `$HOME` or `/groups`, never on `/scratch`.
+**Conda environments:** don't copy environment directories or a personal Anaconda or Miniconda installation. On legacy CBE, export each environment with `conda env export -n <name> --from-history > environment.yml`. Replace a `defaults` channel with `conda-forge` (Anaconda license terms), copy the file, and on CBE.next run `conda env create -n <name> -f environment.yml`. Use `conda`, not `mamba -n`. Create environments in `$HOME` or `/groups`, never on `/scratch`. For pip-only environments, `pip freeze` and `uv` work too.
 
 Record the old and new module names and versions for each workflow, so the user can compare results.
 
@@ -169,4 +169,4 @@ Support: the CBE.next MS Teams channel, or the HPC Servicedesk (https://vbc.atla
 
 - Migration guide: https://docs.vbc.ac.at/research-computing/cbe/migrate-from-cbe/index.md
 - Legacy reference: https://docs.vbc.ac.at/research-computing/legacy-cbe/cbe-slurm-user-s-advanced-guide/index.md and https://docs.vbc.ac.at/research-computing/legacy-cbe/cbe-storage-user-s-guide/index.md
-- CBE.next: https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `storage-and-data`, `openondemand-web-applications`, `bring-your-own-license`.
+- CBE.next: https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `containers`, `python-and-conda`, `storage-and-data`, `transfer-data`, `openondemand-web-applications`, `bring-your-own-license`.

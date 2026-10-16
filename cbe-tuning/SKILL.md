@@ -117,4 +117,4 @@ Apply changes to a copy of the script, validate with one small run, and only the
 
 ## Details (fetch as Markdown)
 
-https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `storage-and-data`, `software-environment-eessi`; and https://docs.vbc.ac.at/data-services/storage-parallelization/index.md and https://docs.vbc.ac.at/data-services/storage-best-practices/index.md.
+https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `storage-and-data`, `transfer-data`, `software-environment-eessi`, `containers`, `python-and-conda`; and https://docs.vbc.ac.at/data-services/storage-parallelization/index.md and https://docs.vbc.ac.at/data-services/storage-best-practices/index.md.

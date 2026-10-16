@@ -1,6 +1,6 @@
 ---
 name: cbe-software
-description: Find, choose, and use software on CBE.next, the Vienna BioCenter HPC cluster. Covers Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, module collections), CVMFS repositories (Galaxy BioContainers, Galaxy and Refgenie reference data, CERN unpacked container images, grid experiment software), SBGrid in /programs, Apptainer containers (including building images outside CBE.next), uv Python environments (no conda), and bring-your-own-license software such as MATLAB. Use whenever the user asks whether a tool is available, how to install or load it, or how to run it on CBE.next.
+description: Find, choose, and use software on CBE.next, the Vienna BioCenter HPC cluster. Covers Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, module collections), CVMFS repositories (Galaxy BioContainers, Galaxy and Refgenie reference data, CERN unpacked container images, grid experiment software), SBGrid in /programs, Apptainer containers (including building images outside CBE.next), uv Python environments, conda environments from the global Miniforge (conda-forge only, never Anaconda or Miniconda), and bring-your-own-license software such as MATLAB. Use whenever the user asks whether a tool is available, how to install or load it, or how to run it on CBE.next.
 ---
 
 # Software on CBE.next
@@ -20,11 +20,11 @@ Facts below reflect the docs as of 2026-10-16. Prefer what the cluster reports (
 | Grid experiment software | `/cvmfs/<repo>`, for example `alice.cern.ch`, `atlas.cern.ch`, `cms.cern.ch` | HEP experiment stacks and conditions data |
 | SBGrid | `/programs` | Structural biology collection |
 | Curated reference data | `/resources` | Genomes and indexes |
-| Your own | containers you pull or build; `uv` environments; binaries in `$HOME` or `/groups` | Anything not provided above |
+| Your own | containers you pull or build; `uv` or conda environments; binaries in `$HOME` or `/groups` | Anything not provided above |
 
-Installed tools worth knowing: `uv`, Apptainer, and `rclone`.
+Installed tools worth knowing: `uv`, conda and mamba (Miniforge), Apptainer, and `rclone`.
 
-Not provided: conda, mamba, and micromamba; Podman; a MATLAB module; an AzCopy module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
+Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module; an AzCopy module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
 
 ## Search in this order
 
@@ -44,7 +44,7 @@ Stop at the first source that has a suitable version.
 3. **SBGrid**, for structural biology: `source /programs/sbgrid.shrc` (`.cshrc` for csh/tcsh), then call the program.
 4. **CERN unpacked images**, for images from public registries: `ls /cvmfs/unpacked.cern.ch/<registry>/<namespace>/`. Only images on CERN's mirror list are there.
 5. **Pull a container yourself**, for example `apptainer pull docker://...`.
-6. **Python packages:** `uv`.
+6. **Python packages:** `uv`. **Packages with non-Python dependencies** (R, bioinformatics tools): a conda environment from conda-forge and Bioconda.
 7. **Still missing:** ask the user whether to request an installation. That's an IT Service Desk request of type **CLIP Software**: project `ISD`, request type ID `31`, portal form https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/31. Draft the request with the application, version, workflow, resource needs, and any license restrictions, show it to the user, and create it only after they approve.
 
 **CVMFS gotcha:** repositories mount on first access, so `ls /cvmfs` can look nearly empty. List the full repository path directly.
@@ -96,13 +96,46 @@ Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay
 - build the image outside CBE.next, push it to a registry, and pull it: `apptainer pull my-tool_1.0.sif docker://<registry>/<namespace>/my-tool:1.0`;
 - or let IT build it from a Git repository: see the "Singularity image builds" and "Docker image builds" pages under `hosting-publishing/build-automation/` in the docs.
 
-## Python
+## Python and conda
 
-- `uv` 0.11 is the supported tool. Use `uv venv ~/venvs/<name>`, then `source ~/venvs/<name>/bin/activate`, then `uv pip install <pkgs>`. For one-off scripts, use `uv run --with <pkg> python script.py`.
+### uv
+
+- `uv` 0.11 is the tool for Python-only projects. Use `uv venv ~/venvs/<name>`, then `source ~/venvs/<name>/bin/activate`, then `uv pip install <pkgs>`. For one-off scripts, use `uv run --with <pkg> python script.py`.
 - Create environments in `$HOME` or `/groups`, never on `/scratch`.
 - Record them with `uv pip freeze > requirements.txt`.
-- For software with complex native dependencies, use a container or a BioContainer image instead.
+- For software with complex native dependencies, use conda, a container, or a BioContainer image instead.
 - Jupyter kernels for OpenOnDemand: run `uv pip install ipykernel`, then `python -m ipykernel install --user --name <name> --display-name "Python (<name>)"`.
+
+### conda
+
+A global Miniforge (conda 26.7, mamba 2.9) is on the `PATH` through the `CBE` module. Only the conda-forge channel is configured.
+
+- **Never use Anaconda, Miniconda, or the `defaults`, `main`, `r`, `msys2`, or `anaconda` channels.** The Anaconda Repository needs a paid license for organizations with more than 200 employees or contractors, unless an academic or non-profit and research policy applies. Don't install them, don't add those channels, and replace `defaults` with `conda-forge` in exported files. conda-forge and Bioconda are fine.
+- **Use `conda`, not `mamba -n`.** `mamba create -n <name>` and `mamba install -n <name>` look only in the read-only shared installation and fail (`Permission denied` or `No prefix found`). `conda` uses the same libmamba solver. If the user insists on mamba, use `-p ~/.conda/envs/<name>`.
+- Create and activate:
+
+    ```bash
+    conda create -n <name> python=3.12 <packages>
+    conda create -n <name> -c conda-forge -c bioconda <tools>
+    eval "$(conda shell.bash hook)"
+    conda activate <name>
+    ```
+
+- Don't run `conda init`: it edits `~/.bashrc` and activates `base` at every sign-in, which can hide modules. Use `eval "$(conda shell.bash hook)"` where activation is needed.
+- Environments go to `~/.conda/envs`, packages to `~/.conda/pkgs` (`conda clean --all` frees space). Shared group environments: `conda create -p /groups/<group>/envs/<name> ...`. Never on `/scratch`.
+- In jobs: `eval "$(conda shell.bash hook)"` and `conda activate <name>`, or `conda run -n <name> <command>`.
+- Don't load modules for tools the active environment also provides (Python, R): the first one on `PATH` wins.
+- Jupyter kernel: `conda install -n <name> ipykernel`, then `conda run -n <name> python -m ipykernel install --user --name <name> --display-name "Python (<name>)"`.
+
+Export and re-create (never copy an environment directory; conda writes its path into the files):
+
+| Goal | Export | Re-create |
+|---|---|---|
+| Portable, only requested packages | `conda export -n <name> --from-history --file environment.yml` | `conda env create -n <name> -f environment.yml` |
+| Same versions, any build | `conda export -n <name> --no-builds --file environment.yml` | `conda env create -n <name> -f environment.yml` |
+| Exact copy, same platform (`linux-64`) | `conda export -n <name> --file explicit.txt` | `conda create -n <name> --file explicit.txt` |
+
+Older conda without `conda export` (for example legacy CBE): `conda env export -n <name> --from-history > environment.yml` and `conda list -n <name> --explicit > explicit.txt`. Remove the `prefix:` line before sharing a file.
 
 ## Licensed software (bring your own license)
 
@@ -118,13 +151,15 @@ For each workflow, record:
 
 - exact module names and versions;
 - the tool's `--version` output;
-- `requirements.txt` or lock files;
+- `requirements.txt`, conda `environment.yml` or `explicit.txt`, or other lock files;
 - container image references with digests;
 - the validation date.
 
 ## Details (fetch as Markdown)
 
-- https://docs.vbc.ac.at/research-computing/cbe/software-environment-eessi/index.md
+- https://docs.vbc.ac.at/research-computing/cbe/software-environment-eessi/index.md (sources and environment modules)
+- https://docs.vbc.ac.at/research-computing/cbe/containers/index.md
+- https://docs.vbc.ac.at/research-computing/cbe/python-and-conda/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/bring-your-own-license/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/openondemand-web-applications/index.md
 - Upstream EESSI concepts: https://www.eessi.io/docs/ (CBE.next policy takes precedence)

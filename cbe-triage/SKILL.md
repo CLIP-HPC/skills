@@ -209,4 +209,6 @@ All research-computing pages are relevant. Start with:
 - https://docs.vbc.ac.at/research-computing/cbe/gpu-jobs/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/storage-and-data/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/software-environment-eessi/index.md
+- https://docs.vbc.ac.at/research-computing/cbe/python-and-conda/index.md
+- https://docs.vbc.ac.at/research-computing/cbe/containers/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/change-notes/index.md (maintenance and configuration changes)
