@@ -1,0 +1,17 @@
+{
+  "name": "clip-hpc",
+  "owner": {
+    "name": "CLIP-HPC"
+  },
+  "metadata": {
+    "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster."
+  },
+  "plugins": [
+    {
+      "name": "cbe-next",
+      "source": "./plugins/cbe-next",
+      "description": "Use CBE.next: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
+      "category": "hpc"
+    }
+  ]
+}
