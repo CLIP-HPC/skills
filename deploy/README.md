@@ -1,147 +1,115 @@
 # Managed hosts
 
 Make the `cbe` plugin available to every Claude Code and Codex user on shared
-Unix hosts, such as the CBE.next login nodes, and keep client updates under
-central control. Deploy from a reviewed checkout on Linux or macOS. Python 3.10+
-is needed only on the deployment machine. Users need no Python, Git, or GitHub
-access.
+Unix hosts, such as the CBE.next nodes, and keep client updates under central
+control. Users need no setup, Python, or GitHub access.
 
-Install the approved client binaries separately. This setup is tested with
-Claude Code **2.1.292** and Codex CLI **0.163.0**.
+The setup has two parts:
 
-```bash
-# Example real binary locations; use the paths from your software deployment.
-sudo python3 deploy/install.py \
-  --claude-bin /opt/claude/bin/claude \
-  --codex-bin /opt/codex/bin/codex
-```
+- **A shared clone** of this repository on a filesystem that all hosts mount.
+  Check out a reviewed tag or commit; that checkout is what users get.
+- **Per-host configuration** in `/etc`, written once by your configuration
+  management. It points both clients at the shared clone and contains no
+  version, so skill updates never touch `/etc`.
 
-Pass only one of `--claude-bin` and `--codex-bin` to deploy a single client.
-Ensure `/usr/local/bin` comes before the real binaries' directories on users'
-`PATH`, and that neither real binary resolves back to a `/usr/local/bin`
-launcher. The installer does not download clients, change shell profiles, or
-run a client as root.
+Install the approved client binaries separately. Tested with Claude Code
+**2.1.292** and Codex CLI **0.163.0**.
 
-For configuration-management packaging, stage the same layout without root:
+## Shared clone
 
 ```bash
-python3 deploy/install.py --claude-bin /opt/claude/bin/claude \
-  --codex-bin /opt/codex/bin/codex --destdir /tmp/clip-hpc-host
+git clone https://github.com/CLIP-HPC/skills.git "$CLONE"   # e.g. under /software
+git -C "$CLONE" checkout <reviewed tag or commit>
 ```
 
-Deploy that tree at `/` with root ownership, readable files, and executable
-directories and launchers. Paths inside the staged files refer to the final
-host, not `/tmp/clip-hpc-host`. The Claude Code managed-settings directory
-defaults to `/etc/claude-code`, or `/Library/Application Support/ClaudeCode`
-when staging on macOS. Use `--claude-managed-dir` when staging for another
-platform.
+Keep it readable by all users and writable only by administrators.
 
-## Installed layout
+## Host configuration
 
-| Host path | Purpose |
-|---|---|
-| `/usr/local/share/clip-hpc/<content hash>/` | Immutable snapshot of both generated catalogs and the public `cbe` package, shared by both clients. |
-| `/etc/claude-code/managed-settings.d/50-clip-hpc.json` | Declare the local `clip-hpc` marketplace, enable `cbe`, and set `DISABLE_AUTOUPDATER`. |
-| `/usr/local/bin/claude` | Register the snapshot and install `cbe@clip-hpc` for the invoking user, then run the real Claude Code binary. |
-| `/etc/codex/config.toml` | Local `clip-hpc` marketplace and enabled `cbe` defaults. |
-| `/etc/codex/requirements.toml` | Enforce `check_for_update_on_startup = false` and `features.in_app_updates = false`. |
-| `/usr/local/bin/codex` | Install `cbe@clip-hpc` for the invoking user, then run the real Codex binary. |
+Replace `@SKILLS_CLONE@` in the templates with the clone's absolute path:
 
-Each launcher keeps the original arguments, and the client's usual
-configuration directory (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`) and authentication.
-If installation fails, the launcher stops and prints the client's error. User
-configuration must be writable, as with a manual plugin installation. Only
-`cbe` is installed automatically. No credentials or repository maintenance
-instructions are copied.
+```bash
+CLONE=/path/to/shared/skills
+sed "s#@SKILLS_CLONE@#$CLONE#" deploy/claude/50-clip-hpc.json \
+  > /etc/claude-code/managed-settings.d/50-clip-hpc.json
+sed "s#@SKILLS_CLONE@#$CLONE#" deploy/codex/config.toml > /etc/codex/config.toml
+cp deploy/codex/requirements.toml /etc/codex/requirements.toml
+```
 
-Neither client installs a plugin from a locally declared marketplace on its
-own: Codex CLI 0.163.0 does not populate a new user's plugin cache from an
-enabled config entry, and Claude Code 2.1.292 registers settings-declared
-marketplaces only when an interactive session starts. The launchers close that
-gap for CLI users.
+If the host already has `/etc/codex/config.toml` or `requirements.toml`,
+merge the tables instead of copying. Codex has no drop-in directory. On macOS,
+the Claude Code managed directory is `/Library/Application Support/ClaudeCode`.
 
 ### Claude Code
 
-On the first launch after each deployment, the launcher runs `claude plugin
-marketplace add <snapshot>` and `claude plugin install cbe@clip-hpc`, then
-records the snapshot in `~/.claude/plugins/clip-hpc-snapshot`. Later launches
-skip this step, which takes about a second. Claude Code loads a directory
-marketplace in place, so a new snapshot takes effect for every user at their
-next launch. A user who uninstalls or disables `cbe` keeps it that way until
-the next deployment; `"cbe@clip-hpc": "force"` in the drop-in makes it
-mandatory.
+`managed-settings.d/50-clip-hpc.json` registers the shared clone as the
+`clip-hpc` directory marketplace and enables `cbe`. Claude Code installs managed
+plugins at the start of each user's next session
+([docs](https://code.claude.com/docs/en/plugins/org)), and loads plugins from
+a directory marketplace in place, so it reads the skills from the shared clone.
+Each user's `~/.claude` gets the registration and a small cached copy.
 
-`marketplace add` also records the marketplace in the user's
-`~/.claude/settings.json`. The managed drop-in declares the same snapshot, so
-IDE and desktop sessions, which bypass the launcher, should also register it
-when they start. This is not yet verified.
+The `env` block sets `DISABLE_UPDATES` and `DISABLE_AUTOUPDATER`, so no session
+on the host tries to update the shared installation. Users cannot override
+managed settings. They can still disable `cbe`; set
+`"cbe@clip-hpc": "force"` to prevent that.
 
-Managed settings cannot be overridden by users. `DISABLE_AUTOUPDATER` stops
-background updates. A manual `claude update` stays possible; deploy approved
-versions through your software management. See the official
-[managed settings](https://code.claude.com/docs/en/managed-settings),
-[settings](https://code.claude.com/docs/en/settings), and
-[marketplace](https://code.claude.com/docs/en/plugins/marketplace-reference)
-documentation.
+See [managed settings](https://code.claude.com/docs/en/managed-settings) and
+[plugin loading](https://code.claude.com/docs/en/plugins/loading).
 
 ### Codex
 
-The launcher runs `codex plugin add` from the deployed snapshot on every
-invocation, which takes well under a second. This installs all six skills for
-a new user and refreshes existing copies after a new deployment. Explicit
-local-source overrides make sure an older user marketplace setting cannot
-redirect the installation to GitHub.
+`config.toml` declares the shared clone as a `git` marketplace and enables
+`cbe`. At startup, Codex compares the clone's revision with its own copy, then
+clones it and installs `cbe` into the user's `~/.codex` when it is missing or
+has changed (about 1 MB per user). This needs `git` on the host, but no network
+access. Only `git` sources install automatically; a `local` marketplace source
+would require each user to run `codex plugin add`.
 
-The desktop app does not run the launcher. Desktop users need a separate
-plugin installation from the same local catalog. The system update
-requirements also apply to supported desktop clients: their built-in updater
-is disabled after a restart. Package managers, MDM, and manual `codex update`
-stay separate: deploy approved Codex versions through your software
-management. The marketplace and plugin entries in system `config.toml` are
-defaults that users can override under normal Codex configuration precedence.
-See the official
-[configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference),
-[managed configuration](https://learn.chatgpt.com/docs/enterprise/managed-configuration),
+These entries are defaults that users can override in `~/.codex/config.toml`.
+`requirements.toml` enforces that update checks stay off, including the
+desktop app's built-in updater after a restart. Package managers, MDM, and
+manual `codex update` are separate: deploy approved versions through your
+software management. See
+[managed configuration](https://learn.chatgpt.com/docs/enterprise/managed-configuration)
 and [app update controls](https://learn.chatgpt.com/docs/enterprise/manage-app-updates).
+
+Users clone from a repository owned by another account. If Git refuses with
+"detected dubious ownership", trust the clone system-wide:
+
+```bash
+git config --system --add safe.directory "$CLONE"
+```
 
 ## Updates and rollback
 
-To update the skills, rerun the installer from a reviewed checkout. It creates
-a new snapshot only when content changes, and it never polls GitHub. Keep
-previous snapshots for rollback, and remove them through your deployment tool
-after active sessions stop using them. To roll back, deploy the old checkout
-and restart the clients.
-
-Home directories are usually shared between hosts. Deploy the same checkout to
-every host that runs the clients, including compute nodes where users start
-them. Otherwise a user switching hosts alternates between snapshots, or ends
-up with a plugin path that does not exist.
-
-Rerunning the installer replaces its own launchers and Codex files, which are
-recognised by their ownership comment, and its Claude drop-in, recognised by
-its file name. It refuses to overwrite any other existing file or a symlink.
-On an already managed host, merge these settings into the existing policy and
-deploy the snapshot and launchers with your configuration manager instead.
-Higher-priority workspace or MDM policy can change the effective settings.
+Update the shared clone, for example `git -C "$CLONE" checkout <next tag>`.
+Claude Code picks up the change at each user's next session. Codex picks it up
+at the next start, when it sees the new revision. Roll back the same way, by
+checking out the previous tag. Changes reach running Claude sessions as files
+are read, so prefer switching tags over editing files in the clone.
 
 ## Verify
 
-As an ordinary user, from outside this checkout:
+As an ordinary user on a configured host, start each client once, then:
 
 ```bash
-command -v claude codex                     # both in /usr/local/bin
-claude plugin list                          # cbe@clip-hpc enabled, read from the snapshot
-codex plugin list --marketplace clip-hpc --json
+claude plugin list                          # cbe@clip-hpc enabled, read from $CLONE
+codex plugin list --marketplace clip-hpc    # cbe@clip-hpc installed and enabled
 ```
 
-Start each client and check that the six CBE skills are available: `/skills`
-in Codex, and the skill list in Claude Code. On supported Codex desktop
-clients, fully restart the app and check the managed update indicator in
-Settings. Check the effective policy on a target host, including any workspace
-and MDM layers.
+Check that the six CBE skills are available in a session. Check the effective
+policy on a target host as well, including any workspace or MDM layers.
 
-To check both launchers with the real CLIs, in isolated temporary state:
+## Alternative: admin skill directories
 
-```bash
-python3 deploy/smoke-test.py
-```
+Both clients also read skills from an administrator directory, without a
+plugin, per-user state, or opt-out:
+
+- Codex: `/etc/codex/skills/<skill>/`
+- Claude Code: `.claude/skills/<skill>/` in the managed settings directory,
+  that is `/etc/claude-code/.claude/skills/<skill>/` on Linux
+
+Symlink each `"$CLONE"/plugins/cbe/skills/<skill>` there. Skills then appear
+without the `cbe:` prefix, and every change to the clone is live immediately.
+Neither path has been tested with this repository yet.

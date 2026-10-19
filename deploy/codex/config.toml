@@ -1,12 +1,13 @@
-# Managed by CLIP-HPC deploy/install.py.
+# CLIP-HPC: merge into /etc/codex/config.toml.
 check_for_update_on_startup = false
 
 [features]
 plugins = true
 
+# A git source makes Codex install and update cbe for each user at startup.
 [marketplaces.clip-hpc]
-source_type = "local"
-source = @MARKETPLACE_ROOT@
+source_type = "git"
+source = "@SKILLS_CLONE@"
 
 [plugins."cbe@clip-hpc"]
 enabled = true

@@ -88,5 +88,3 @@ jobs:
       - run: codex --version && claude --version
       - name: Validate adapters and test installation in both clients
         run: uv run --locked python scripts/smoke-test.py
-      - name: Test managed host launchers
-        run: uv run --locked python deploy/smoke-test.py

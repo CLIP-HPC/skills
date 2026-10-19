@@ -1,4 +1,4 @@
-# Managed by CLIP-HPC deploy/install.py.
+# CLIP-HPC: merge into /etc/codex/requirements.toml.
 check_for_update_on_startup = false
 
 [features]
