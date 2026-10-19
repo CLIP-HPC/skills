@@ -1,6 +1,6 @@
 ---
 name: cbe-software
-description: "Find, load, install, or run software on CBE.next using Lmod modules, CVMFS collections, SBGrid, Apptainer, uv, or conda. Use when choosing a software source, resolving an environment, building a container outside the cluster, or requesting missing software."
+description: "Find, load, install, or run software on CBE.next using Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, collections), CVMFS repositories (Galaxy BioContainers, Refgenie reference data, CERN unpacked images), SBGrid in /programs, Apptainer, uv Python environments, or conda from the global Miniforge (conda-forge only, never Anaconda or Miniconda). Use when asking whether a tool is available, choosing a software source, resolving an environment, building a container outside the cluster, running bring-your-own-license software such as MATLAB, or requesting missing software."
 metadata:
   display-name: "CBE software"
   short-description: "Find and configure software on CBE.next"

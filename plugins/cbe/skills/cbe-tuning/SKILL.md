@@ -1,6 +1,6 @@
 ---
 name: cbe-tuning
-description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data and small experiments. Use for slow jobs, long queue waits, CPU or memory sizing, GPU selection, arrays, storage bottlenecks, and scaling; use cbe-triage for failed jobs."
+description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data (sacct, jobeff, jobinfo) and small parameter sweeps. Use for slow jobs, long queue waits, over- or under-requested CPU, memory, GPU, or time, thread settings, job arrays for trivially parallel work, storage I/O bottlenecks, full B200 versus MIG choice, and scaling or parallelising a workload; use cbe-triage for failed jobs."
 metadata:
   display-name: "CBE job tuning"
   short-description: "Tune Slurm resources using measured job performance"

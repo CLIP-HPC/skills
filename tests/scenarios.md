@@ -1,7 +1,7 @@
 # Manual behavior checks
 
 Run these in a fresh conversation after installing the plugin in each host.
-These are review scenarios, not automated model evaluations. Use supplied
+In Claude Code, `plugins/cbe/evals/` automates these checks; see the README. Here they are review scenarios. Use supplied
 scripts and logs rather than connecting to a production cluster for the check.
 
 | Prompt | Expected behavior |
