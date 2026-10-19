@@ -61,6 +61,9 @@ codex plugin add cbe@clip-hpc
 
 See [OpenAI's plugin packaging and marketplace documentation](https://developers.openai.com/plugins/build/plugins).
 
+For centrally managed Unix hosts, see [`deploy/codex`](deploy/codex/README.md)
+for enforced update controls and automatic local marketplace/plugin installation.
+
 ## Install in Claude Code
 
 ```bash
