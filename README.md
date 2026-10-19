@@ -70,3 +70,5 @@ scripts/package-skills.sh                 # zip skills for claude.ai upload
 4. Commit with a COPS or RFC prefix where one applies, for example `COPS-239: agent: ...`.
 
 This repository is public. Keep facts to what the public documentation states. Support and operations material belongs in the internal `CLIP-HPC/operator-skills` repository, which the `ops` entry in this marketplace points to.
+
+The skills state facts from the CBE.next pages on docs.vbc.ac.at (source: the `newdocs` repository). Until the CBE.next release, the authoritative source is the `review/final-state` branch of `newdocs`, not `main` or the live site. When those pages change, update the skills and bump the version.

@@ -7,7 +7,7 @@ description: Port workloads from legacy CBE (cbe.vbc.ac.at, clip-login-*, clip-*
 
 Legacy CBE shuts down on 2026-12-18. After that, data that exists only on legacy CBE is gone, including legacy home directories and `/scratch-cbe`. This skill covers translating and validating workloads. For general CBE.next usage, use the `cbe-next` skill; for software replacements, `cbe-software`; for filesystems and transfers, `cbe-data`.
 
-Facts below reflect the docs as of 2026-10-16. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
+Facts below reflect the docs as of 2026-10-19. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
 
 ## How to work
 

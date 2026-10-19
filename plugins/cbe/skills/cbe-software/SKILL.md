@@ -5,7 +5,7 @@ description: Find, choose, and use software on CBE.next, the Vienna BioCenter HP
 
 # Software on CBE.next
 
-Facts below reflect the docs as of 2026-10-16. Prefer what the cluster reports (`module spider`, directory listings) over this file.
+Facts below reflect the docs as of 2026-10-19. Prefer what the cluster reports (`module spider`, directory listings) over this file.
 
 ## Where software comes from
 
@@ -111,7 +111,7 @@ Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay
 A global Miniforge (conda 26.7, mamba 2.9) is on the `PATH` through the `CBE` module. Only the conda-forge channel is configured.
 
 - **Never use Anaconda, Miniconda, or the `defaults`, `main`, `r`, `msys2`, or `anaconda` channels.** The Anaconda Repository needs a paid license for organizations with more than 200 employees or contractors, unless an academic or non-profit and research policy applies. Don't install them, don't add those channels, and replace `defaults` with `conda-forge` in exported files. conda-forge and Bioconda are fine.
-- **Use `conda`, not `mamba -n`.** `mamba create -n <name>` and `mamba install -n <name>` look only in the read-only shared installation and fail (`Permission denied` or `No prefix found`). `conda` uses the same libmamba solver. If the user insists on mamba, use `-p ~/.conda/envs/<name>`.
+- **Use `conda`, not `mamba -n`.** `mamba create -n <name>` and `mamba install -n <name>` look only in the read-only shared installation and fail (`Permission denied` or `No prefix found`). `conda` uses the same libmamba solver. If the user prefers mamba, pass the full environment path with `-p ~/.conda/envs/<name>` to `mamba create` and `mamba install`; `conda activate <name>` still finds it by name.
 - Create and activate:
 
     ```bash

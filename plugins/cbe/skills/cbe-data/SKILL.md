@@ -5,7 +5,7 @@ description: How to use the filesystems on CBE.next, the Vienna BioCenter HPC cl
 
 # Data and filesystems on CBE.next
 
-Facts below reflect the docs as of 2026-10-16. Items marked *not available yet* may have changed.
+Facts below reflect the docs as of 2026-10-19. Items marked *not available yet* may have changed.
 
 ## Hard rules
 
