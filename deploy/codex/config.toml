@@ -1,0 +1,12 @@
+# Managed by CLIP-HPC deploy/codex/install.py.
+check_for_update_on_startup = false
+
+[features]
+plugins = true
+
+[marketplaces.clip-hpc]
+source_type = "local"
+source = @MARKETPLACE_ROOT@
+
+[plugins."cbe@clip-hpc"]
+enabled = true
