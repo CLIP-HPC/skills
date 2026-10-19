@@ -1,6 +1,10 @@
 ---
 name: cbe-software
-description: Find, choose, and use software on CBE.next, the Vienna BioCenter HPC cluster. Covers Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, module collections), CVMFS repositories (Galaxy BioContainers, Galaxy and Refgenie reference data, CERN unpacked container images, grid experiment software), SBGrid in /programs, Apptainer containers (including building images outside CBE.next), uv Python environments, conda environments from the global Miniforge (conda-forge only, never Anaconda or Miniconda), and bring-your-own-license software such as MATLAB. Use whenever the user asks whether a tool is available, how to install or load it, or how to run it on CBE.next.
+description: "Find, load, install, or run software on CBE.next using Lmod modules, CVMFS collections, SBGrid, Apptainer, uv, or conda. Use when choosing a software source, resolving an environment, building a container outside the cluster, or requesting missing software."
+metadata:
+  display-name: "CBE software"
+  short-description: "Find and configure software on CBE.next"
+  example-task: "find a suitable software environment for this workflow."
 ---
 
 # Software on CBE.next

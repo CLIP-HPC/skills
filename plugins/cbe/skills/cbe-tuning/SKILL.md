@@ -1,6 +1,10 @@
 ---
 name: cbe-tuning
-description: Improve the performance and resource efficiency of Slurm jobs on CBE.next, the Vienna BioCenter HPC cluster. Analyses the tools a job runs, past runtime and resource usage (sacct, jobeff, jobinfo), thread and process settings, job structure (job arrays for trivially parallel work), storage I/O (/scratch, per-job /tmp, /groups hot spots), and GPU choice (full B200 vs MIG). Proposes an optimisation plan and, if the user agrees, runs small parameter sweeps. Use when a job is slow, waits long in the queue, over- or under-requests CPU, memory, GPU, or time, or the user asks to optimise, speed up, scale, or parallelise a workload.
+description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data and small experiments. Use for slow jobs, long queue waits, CPU or memory sizing, GPU selection, arrays, storage bottlenecks, and scaling; use cbe-triage for failed jobs."
+metadata:
+  display-name: "CBE job tuning"
+  short-description: "Tune Slurm resources using measured job performance"
+  example-task: "review this job and propose resource and performance improvements."
 ---
 
 # Tune jobs on CBE.next

@@ -1,0 +1,15 @@
+{
+  "name": "clip-hpc",
+  "display_name": "CLIP-HPC",
+  "owner": {"name": "CLIP-HPC"},
+  "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster.",
+  "plugins": [
+    {"source": "./plugins/cbe", "category": "Productivity"},
+    {
+      "name": "ops",
+      "source": {"source": "url", "url": "https://github.com/CLIP-HPC/operator-skills.git"},
+      "description": "Internal staff only. Requires access to the private repository. Not required for regular CBE / CLIP use.",
+      "category": "Productivity"
+    }
+  ]
+}
