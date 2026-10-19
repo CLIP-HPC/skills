@@ -1,0 +1,9 @@
+# Merge into /etc/codex/config.toml. These are system defaults; users can
+# override them in ~/.codex/config.toml.
+
+[marketplaces.clip-hpc]
+source_type = "git"
+source = "https://github.com/CLIP-HPC/skills.git"
+
+[plugins."cbe@clip-hpc"]
+enabled = true
