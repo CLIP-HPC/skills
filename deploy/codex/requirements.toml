@@ -1,4 +1,4 @@
-# CLIP-HPC: merge into /etc/codex/requirements.toml.
+# Managed by CLIP-HPC deploy/install-host.sh; merge by hand if /etc/codex has other settings.
 check_for_update_on_startup = false
 
 [features]

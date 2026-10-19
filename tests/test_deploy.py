@@ -1,7 +1,10 @@
 """Host configuration templates render to valid, stable settings."""
 import json
 from pathlib import Path
+import platform
 import re
+import subprocess
+import tempfile
 import unittest
 
 try:
@@ -11,7 +14,7 @@ except ImportError:  # Python 3.10
 
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY = ROOT / "deploy"
-CLONE = "/software/clip-hpc/skills"
+CLONE = "/software/system/agents/skills"
 
 
 def render(relative):
@@ -47,6 +50,66 @@ class HostTemplateTests(unittest.TestCase):
             data = json.loads((ROOT / catalog).read_text())
             self.assertEqual(data["name"], "clip-hpc")
             self.assertIn("cbe", [plugin["name"] for plugin in data["plugins"]])
+
+
+class InstallHostScriptTests(unittest.TestCase):
+    """Run deploy/install-host.sh against a staging root, never the real /etc."""
+
+    def run_script(self, root, *args):
+        return subprocess.run(["sh", str(DEPLOY / "install-host.sh"), "--root", str(root), *args],
+                              capture_output=True, text=True, cwd=root)
+
+    def targets(self, root):
+        claude = ("Library/Application Support/ClaudeCode" if platform.system() == "Darwin"
+                  else "etc/claude-code")
+        return [root / claude / "managed-settings.d/50-clip-hpc.json",
+                root / "etc/codex/config.toml", root / "etc/codex/requirements.toml"]
+
+    def test_install_is_idempotent_and_points_at_this_clone(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first = self.run_script(root)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            claude, config, requirements = self.targets(root)
+            settings = json.loads(claude.read_text())
+            self.assertEqual(settings["extraKnownMarketplaces"]["clip-hpc"]["source"]["path"], str(ROOT))
+            self.assertIn(f'source = "{ROOT}"', config.read_text())
+            for path in (claude, config, requirements):
+                self.assertEqual(path.stat().st_mode & 0o777, 0o644)
+                self.assertNotIn("@SKILLS_CLONE@", path.read_text())
+            second = self.run_script(root)
+            self.assertEqual(second.stdout.count("unchanged:"), 3, second.stdout)
+
+    def test_foreign_file_stops_before_any_change(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            claude, config, requirements = self.targets(root)
+            requirements.parent.mkdir(parents=True)
+            requirements.write_text('allowed_approval_policies = ["never"]\n')
+            result = self.run_script(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("merge deploy/codex/requirements.toml by hand", result.stderr)
+            self.assertFalse(claude.exists() or config.exists())
+            self.assertEqual(requirements.read_text(), 'allowed_approval_policies = ["never"]\n')
+
+    def test_remove_keeps_foreign_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.assertEqual(self.run_script(root).returncode, 0)
+            claude, config, requirements = self.targets(root)
+            requirements.write_text("model = \"x\"\n")
+            result = self.run_script(root, "--remove")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(claude.exists() or config.exists())
+            self.assertTrue(requirements.exists())
+
+    def test_dry_run_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = self.run_script(root, "--dry-run")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.count("write:"), 3)
+            self.assertEqual(list(root.iterdir()), [])
 
 
 if __name__ == "__main__":

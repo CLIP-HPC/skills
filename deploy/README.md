@@ -8,8 +8,8 @@ The setup has two parts:
 
 - **A shared clone** of this repository on a filesystem that all hosts mount.
   Check out a reviewed tag or commit; that checkout is what users get.
-- **Per-host configuration** in `/etc`, written once by your configuration
-  management. It points both clients at the shared clone and contains no
+- **Per-host configuration** in `/etc`, written once per host by
+  `deploy/install-host.sh`. It points both clients at the shared clone and contains no
   version, so skill updates never touch `/etc`.
 
 Install the approved client binaries separately. Tested with Claude Code
@@ -17,28 +17,47 @@ Install the approved client binaries separately. Tested with Claude Code
 
 ## Shared clone
 
+On CBE.next the clone lives in `/software/system/agents/skills`:
+
 ```bash
-git clone https://github.com/CLIP-HPC/skills.git "$CLONE"   # e.g. under /software
-git -C "$CLONE" checkout <reviewed tag or commit>
+git clone https://github.com/CLIP-HPC/skills.git /software/system/agents/skills
+git -C /software/system/agents/skills checkout <reviewed tag or commit>
 ```
 
 Keep it readable by all users and writable only by administrators.
 
 ## Host configuration
 
-Replace `@SKILLS_CLONE@` in the templates with the clone's absolute path:
+Run the installer from the clone, as root, on each host. Your configuration
+management can do this, or you can run it by hand on a node:
 
 ```bash
-CLONE=/path/to/shared/skills
-sed "s#@SKILLS_CLONE@#$CLONE#" deploy/claude/50-clip-hpc.json \
-  > /etc/claude-code/managed-settings.d/50-clip-hpc.json
-sed "s#@SKILLS_CLONE@#$CLONE#" deploy/codex/config.toml > /etc/codex/config.toml
-cp deploy/codex/requirements.toml /etc/codex/requirements.toml
+/software/system/agents/skills/deploy/install-host.sh --dry-run   # show what would change
+/software/system/agents/skills/deploy/install-host.sh             # install or update
+/software/system/agents/skills/deploy/install-host.sh --remove    # uninstall
 ```
 
-If the host already has `/etc/codex/config.toml` or `requirements.toml`,
-merge the tables instead of copying. Codex has no drop-in directory. On macOS,
-the Claude Code managed directory is `/Library/Application Support/ClaudeCode`.
+The script fills in the clone's path from its own location, so the same
+script works for any clone. It writes:
+
+| Host path | Template |
+|---|---|
+| `/etc/claude-code/managed-settings.d/50-clip-hpc.json` | `deploy/claude/50-clip-hpc.json` |
+| `/etc/codex/config.toml` | `deploy/codex/config.toml` |
+| `/etc/codex/requirements.toml` | `deploy/codex/requirements.toml` |
+
+It also trusts the clone in the system Git configuration (`git config --system
+--add safe.directory`), because each user's Codex clones it from an
+administrator-owned repository.
+
+Rerunning it is safe: files with the same content are left alone. It replaces
+only its own files: the Claude drop-in by its name, and the Codex files by
+their first-line marker. If another file is already at one of these paths, it
+stops before changing anything. Merge the template by hand in that case; Codex
+has no drop-in directory. `--remove` deletes only its own files and the Git
+entry. `--root DIR` writes below a staging directory instead of `/`, for
+image builds and tests. On macOS, the Claude Code managed directory is
+`/Library/Application Support/ClaudeCode`.
 
 ### Claude Code
 
@@ -74,16 +93,10 @@ software management. See
 [managed configuration](https://learn.chatgpt.com/docs/enterprise/managed-configuration)
 and [app update controls](https://learn.chatgpt.com/docs/enterprise/manage-app-updates).
 
-Users clone from a repository owned by another account. If Git refuses with
-"detected dubious ownership", trust the clone system-wide:
-
-```bash
-git config --system --add safe.directory "$CLONE"
-```
-
 ## Updates and rollback
 
-Update the shared clone, for example `git -C "$CLONE" checkout <next tag>`.
+Update the shared clone, for example
+`git -C /software/system/agents/skills checkout <next tag>`.
 Claude Code picks up the change at each user's next session. Codex picks it up
 at the next start, when it sees the new revision. Roll back the same way, by
 checking out the previous tag. Changes reach running Claude sessions as files
@@ -94,7 +107,7 @@ are read, so prefer switching tags over editing files in the clone.
 As an ordinary user on a configured host, start each client once, then:
 
 ```bash
-claude plugin list                          # cbe@clip-hpc enabled, read from $CLONE
+claude plugin list                          # cbe@clip-hpc enabled, read from the clone
 codex plugin list --marketplace clip-hpc    # cbe@clip-hpc installed and enabled
 ```
 
@@ -110,6 +123,6 @@ plugin, per-user state, or opt-out:
 - Claude Code: `.claude/skills/<skill>/` in the managed settings directory,
   that is `/etc/claude-code/.claude/skills/<skill>/` on Linux
 
-Symlink each `"$CLONE"/plugins/cbe/skills/<skill>` there. Skills then appear
+Symlink each `/software/system/agents/skills/plugins/cbe/skills/<skill>` there. Skills then appear
 without the `cbe:` prefix, and every change to the clone is live immediately.
 Neither path has been tested with this repository yet.
