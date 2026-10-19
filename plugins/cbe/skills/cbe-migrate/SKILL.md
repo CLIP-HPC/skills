@@ -1,6 +1,6 @@
 ---
 name: cbe-migrate
-description: "Port job scripts, software environments, data, and interactive workflows from legacy CBE to CBE.next. Use for legacy cbe.vbc.ac.at or clip-* hosts, /scratch-cbe, old QOS settings, and preparation for the legacy shutdown on 2026-12-18."
+description: "Port job scripts, sbatch files, modules, conda environments, containers, data, and interactive JupyterHub, RStudio, or XPRA workflows from legacy CBE to CBE.next. Use for legacy cbe.vbc.ac.at, clip-login-* or clip-* hosts, /scratch-cbe, old QOS settings such as c_short, m_long, or g_rapid, and preparation for the legacy shutdown on 2026-12-18."
 metadata:
   display-name: "CBE migration"
   short-description: "Migrate legacy CBE workflows to CBE.next"

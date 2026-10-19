@@ -148,9 +148,11 @@ scripts/package-skills.sh cbe-triage      # one skill
 Maintainers need [uv](https://docs.astral.sh/uv/) and Python 3.10+. Dependencies
 are locked in `uv.lock`; they are not runtime requirements for the skills.
 
-1. Edit `plugins/cbe/skills/<skill>/SKILL.md`. Keep discovery descriptions concise;
-   place picker labels, the short description, and a neutral example task in its
-   frontmatter `metadata`.
+1. Edit `plugins/cbe/skills/<skill>/SKILL.md`. Discovery descriptions decide when
+   a client loads a skill: keep the identifiers users paste or type (host and node
+   names, partitions, QOS names, paths, tool names) and say which sibling skill
+   handles adjacent requests. Place picker labels, the short description, and a
+   neutral example task in its frontmatter `metadata`.
 2. For a release, bump `version` in `plugins/cbe/plugin.json`. Change catalog
    membership in root `marketplace.json`.
 3. Generate and validate:
@@ -167,16 +169,30 @@ are locked in `uv.lock`; they are not runtime requirements for the skills.
    uv run --locked python scripts/smoke-test.py
    ```
 
-   This validates the Claude marketplace, plugin, and skills, then installs the
+   This validates the Claude marketplace and plugin manifests, then installs the
    plugin in both clients using isolated temporary state. The Codex package omits
    the Claude manifest. It verifies all six installed skills and their picker metadata.
    It does not call a model, submit cluster jobs, or change your installed plugins.
-5. Run the [manual behavior scenarios](tests/scenarios.md) in a fresh conversation
-   when changing workflow instructions. Commit generated outputs with their sources.
+5. When changing descriptions or workflow instructions, run the Claude Code eval
+   suite in `plugins/cbe/evals/`. It calls a model on your own Claude account, so
+   it costs money and is not part of CI:
+
+   ```bash
+   claude plugin eval plugins/cbe --judge-model sonnet --no-publish
+   ```
+
+   Each case checks that the expected skill loads (reported, not scored) and that
+   the answer has the expected substance, with and without the plugin; the
+   headline number is the difference. The last case checks that no CBE skill loads
+   for an unrelated prompt. Run the [manual behavior scenarios](tests/scenarios.md)
+   in Codex, which has no equivalent runner. Commit generated outputs with their sources.
 
 CI checks schemas, names, relative resource links, metadata, generated-file drift,
 archive contents, and regression tests on Linux and macOS. A separate job runs
-the pinned CLI compatibility smoke test without credentials. The published
+the CLI compatibility smoke test without credentials, against the pinned versions
+above and, without blocking merges, the latest releases; it also runs weekly.
+Claude's `plugin validate` does not check `SKILL.md` frontmatter, so
+`scripts/validate.py` is the check for skill names and descriptions in both clients. The published
 Agent Plugins schema is vendored under `schemas/` so schema validation is offline.
 No workflow publishes releases or changes your client configuration.
 

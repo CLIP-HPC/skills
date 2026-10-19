@@ -37,6 +37,11 @@ For changes to generation, validation, or installation helpers, also run:
 uv run --locked python -m unittest discover -s tests -v
 ```
 
+For description or workflow changes, run the Claude Code eval suite in
+`plugins/cbe/evals/` as described in the README, and keep at least one case where
+no CBE skill should load. Eval cases contain prompts and graders only; they are
+installed with the plugin but never loaded as instructions.
+
 For packaging or compatibility changes, run `scripts/smoke-test.py` with the
 CLI versions listed in the README. It uses temporary client state and requires
 no credentials. For skill workflow changes, review `tests/scenarios.md`; do not

@@ -1,6 +1,6 @@
 ---
 name: cbe-data
-description: "Choose storage and transfer methods on CBE.next; stage job data, restore files, check quotas and permissions, or archive results. Use for /users, /scratch, job-local temporary storage, /groups, /clustertmp, and external transfers, including Globus and Azure archive."
+description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources and /resources/ngs, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS."
 metadata:
   display-name: "CBE data"
   short-description: "Store, stage, restore, and transfer cluster data"

@@ -1,6 +1,6 @@
 ---
 name: cbe-triage
-description: "Diagnose failed, timed-out, out-of-memory, hanging, or incorrect Slurm jobs on CBE.next using logs and accounting data. Compare successful runs, reproduce minimally, and draft an HPC Servicedesk ticket when needed. Use cbe-tuning for otherwise working jobs that need better performance."
+description: "Diagnose failed, crashed, killed, cancelled, timed-out, out-of-memory, hanging, or incorrect Slurm jobs on CBE.next using job logs and accounting data. Check system-side causes such as exceeded quota, scratch deletion, node failure, network or storage errors, and maintenance; compare with successful runs, reproduce minimally, and draft an HPC Servicedesk ticket when needed. Use cbe-tuning for otherwise working jobs that need better performance."
 metadata:
   display-name: "CBE job triage"
   short-description: "Diagnose failed jobs and prepare support requests"

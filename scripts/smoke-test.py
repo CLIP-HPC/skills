@@ -50,7 +50,8 @@ def main():
         for secret in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
             environment.pop(secret, None)
 
-        # Check the actual generated Claude adapters, including skill metadata.
+        # Check the generated Claude manifests. Claude's validator does not
+        # reject invalid SKILL.md frontmatter; scripts/validate.py covers that.
         for folder in (ROOT, ROOT / "plugins/cbe", ROOT / "plugins/cbe/skills"):
             run(["claude", "plugin", "validate", "--strict", str(folder)], environment, ROOT)
         run(["claude", "plugin", "marketplace", "add", str(ROOT)], environment, ROOT)

@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Weekly, to notice client releases that change plugin handling.
+    - cron: "17 5 * * 1"
 
 permissions:
   contents: read
@@ -55,8 +58,21 @@ jobs:
       - run: git diff --exit-code
 
   clients:
-    name: Claude and Codex CLI compatibility
+    name: Claude and Codex CLI compatibility (${{ matrix.clients }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The versions documented in the README gate merges.
+          - clients: pinned
+            codex: "0.163.0"
+            claude: "2.1.292"
+          # Users update automatically; report regressions without blocking.
+          - clients: latest
+            codex: latest
+            claude: latest
+    continue-on-error: ${{ matrix.clients == 'latest' }}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -67,7 +83,8 @@ jobs:
         with:
           node-version: "24"
           package-manager-cache: false
-      - name: Install the tested CLI versions
-        run: npm install --global @openai/codex@0.163.0 @anthropic-ai/claude-code@2.1.292
+      - name: Install the CLI versions
+        run: npm install --global "@openai/codex@${{ matrix.codex }}" "@anthropic-ai/claude-code@${{ matrix.claude }}"
+      - run: codex --version && claude --version
       - name: Validate adapters and test installation in both clients
         run: uv run --locked python scripts/smoke-test.py
