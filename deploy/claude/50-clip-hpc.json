@@ -1,12 +1,13 @@
 {
   "env": {
+    "DISABLE_UPDATES": "1",
     "DISABLE_AUTOUPDATER": "1"
   },
   "extraKnownMarketplaces": {
     "clip-hpc": {
       "source": {
         "source": "directory",
-        "path": @MARKETPLACE_ROOT@
+        "path": "@SKILLS_CLONE@"
       }
     }
   },

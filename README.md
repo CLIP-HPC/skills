@@ -83,8 +83,8 @@ claude plugin update cbe@clip-hpc
 ## Managed hosts
 
 To enable `cbe` for every Claude Code and Codex user on shared Unix hosts, such
-as the CBE.next login nodes, from a reviewed local snapshot with client updates
-under central control, see [`deploy/`](deploy/README.md).
+as the CBE.next nodes, from a shared clone of this repository with client
+updates under central control, see [`deploy/`](deploy/README.md).
 
 ## Why generated compatibility files?
 
