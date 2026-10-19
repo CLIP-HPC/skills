@@ -8,9 +8,18 @@
   },
   "plugins": [
     {
-      "name": "cbe-next",
-      "source": "./plugins/cbe-next",
+      "name": "cbe",
+      "source": "./plugins/cbe",
       "description": "Use CBE.next: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
+      "category": "hpc"
+    },
+    {
+      "name": "ops",
+      "source": {
+        "source": "github",
+        "repo": "CLIP-HPC/operator-skills"
+      },
+      "description": "For CLIP-HPC support and operations staff. Installs from an internal repository, so it needs GitHub access to CLIP-HPC/operator-skills.",
       "category": "hpc"
     }
   ]

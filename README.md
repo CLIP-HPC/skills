@@ -6,7 +6,7 @@ The skills teach an agent how to connect to CBE.next, submit and tune Slurm jobs
 
 ## Skills
 
-The `cbe-next` plugin contains six skills that refer to each other by name:
+The `cbe` plugin contains six skills that refer to each other by name:
 
 | Skill | Use it to |
 |---|---|
@@ -21,10 +21,16 @@ The `cbe-next` plugin contains six skills that refer to each other by name:
 
 ```bash
 claude plugin marketplace add CLIP-HPC/skills
-claude plugin install cbe-next@clip-hpc
+claude plugin install cbe@clip-hpc
 ```
 
-Inside a Claude Code session, use `/plugin marketplace add CLIP-HPC/skills` and `/plugin install cbe-next@clip-hpc` instead.
+Inside a Claude Code session, use `/plugin marketplace add CLIP-HPC/skills` and `/plugin install cbe@clip-hpc` instead.
+
+HPC support and operations staff also install the `ops` plugin. It is listed in this marketplace but installs from the internal `CLIP-HPC/operator-skills` repository, so it only works with GitHub access to that repository:
+
+```bash
+claude plugin install ops@clip-hpc
+```
 
 Update later with:
 
@@ -45,22 +51,22 @@ scripts/package-skills.sh cbe-triage      # a single skill
 
 ```text
 .claude-plugin/marketplace.json           # marketplace catalogue
-plugins/cbe-next/.claude-plugin/plugin.json
-plugins/cbe-next/skills/<skill>/SKILL.md
+plugins/cbe/.claude-plugin/plugin.json
+plugins/cbe/skills/<skill>/SKILL.md
 scripts/package-skills.sh                 # zip skills for claude.ai upload
 ```
 
 ## Change a skill
 
-1. Edit `plugins/cbe-next/skills/<skill>/SKILL.md`.
-2. Bump `version` in `plugins/cbe-next/.claude-plugin/plugin.json`. Installed copies only update when the version changes.
+1. Edit `plugins/cbe/skills/<skill>/SKILL.md`.
+2. Bump `version` in `plugins/cbe/.claude-plugin/plugin.json`. Installed copies only update when the version changes.
 3. Validate:
 
    ```bash
    claude plugin validate .
-   claude plugin validate plugins/cbe-next
+   claude plugin validate plugins/cbe
    ```
 
 4. Commit with a COPS or RFC prefix where one applies, for example `COPS-239: agent: ...`.
 
-This repository is public. Keep facts to what the public documentation states. Support-staff and admin material belongs in the separate operator repository.
+This repository is public. Keep facts to what the public documentation states. Support and operations material belongs in the internal `CLIP-HPC/operator-skills` repository, which the `ops` entry in this marketplace points to.
