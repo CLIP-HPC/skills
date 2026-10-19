@@ -1,6 +1,10 @@
 ---
 name: cbe-next
-description: How to work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login atlas.cbenext.vbc.ac.at, nodes cbe-c3-*/cbe-g5-*/cbe-m3-*). Covers Slurm sbatch/salloc/srun and job arrays, partitions c, g, and m, Slurm accounts, NVIDIA B200 GPUs and MIG slices, modules (EESSI and CBE stacks), Apptainer containers, uv Python environments, storage ($HOME, /scratch, $SCRATCHDIR, /groups, /resources, /clustertmp), data transfer, and OpenOnDemand. Use whenever connecting to, submitting jobs on, installing software on, or moving data to or from CBE.next.
+description: "Work on CBE.next, the Vienna BioCenter HPC cluster: connect over SSH, choose Slurm partitions and GPUs, and write or submit batch and interactive jobs. Use for general cluster access and job setup; use the specialized CBE skills for software, data, tuning, failure triage, and migration."
+metadata:
+  display-name: "CBE.next"
+  short-description: "Connect to CBE.next and prepare Slurm jobs"
+  example-task: "adapt this batch script for CBE.next."
 ---
 
 # CBE.next

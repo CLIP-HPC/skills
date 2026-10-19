@@ -1,0 +1,73 @@
+name: Validate skill bundle
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable:
+    name: Portable bundle (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: macos-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - name: Validate manifests, metadata, paths, and generated-file drift
+        run: uv run --locked python scripts/validate.py
+      - name: Test generation and standalone installation
+        run: uv run --locked python -m unittest discover -s tests -v
+      - name: Check skill archive packaging
+        run: |
+          bash -n scripts/package-skills.sh
+          scripts/package-skills.sh
+          uv run --locked python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          archives = sorted(Path("dist").glob("*.zip"))
+          assert len(archives) == 6, "Expected six skill archives"
+          for path in archives:
+              with ZipFile(path) as archive:
+                  archive.getinfo(path.stem + "/SKILL.md")
+                  archive.getinfo(path.stem + "/agents/openai.yaml")
+                  assert archive.testzip() is None, f"Corrupt archive: {path}"
+          PY
+      - run: git diff --exit-code
+
+  clients:
+    name: Claude and Codex CLI compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          python-version: "3.13"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install the tested CLI versions
+        run: npm install --global @openai/codex@0.163.0 @anthropic-ai/claude-code@2.1.292
+      - name: Validate adapters and test installation in both clients
+        run: uv run --locked python scripts/smoke-test.py

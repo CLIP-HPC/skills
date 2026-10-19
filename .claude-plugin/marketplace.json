@@ -9,18 +9,18 @@
   "plugins": [
     {
       "name": "cbe",
-      "source": "./plugins/cbe",
-      "description": "Use CBE.next: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
-      "category": "hpc"
+      "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
+      "category": "Productivity",
+      "source": "./plugins/cbe"
     },
     {
       "name": "ops",
       "source": {
-        "source": "github",
-        "repo": "CLIP-HPC/operator-skills"
+        "source": "url",
+        "url": "https://github.com/CLIP-HPC/operator-skills.git"
       },
-      "description": "For CLIP-HPC support and operations staff. Installs from an internal repository, so it needs GitHub access to CLIP-HPC/operator-skills.",
-      "category": "hpc"
+      "description": "Internal staff only. Requires access to the private repository. Not required for regular CBE / CLIP use.",
+      "category": "Productivity"
     }
   ]
 }

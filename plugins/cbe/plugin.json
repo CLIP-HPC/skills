@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cbe",
+  "version": "0.2.0",
+  "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
+  "author": {
+    "name": "CLIP-HPC"
+  },
+  "repository": "https://github.com/CLIP-HPC/skills",
+  "keywords": [
+    "hpc",
+    "slurm",
+    "cbe-next"
+  ]
+}

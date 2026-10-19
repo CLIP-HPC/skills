@@ -1,6 +1,10 @@
 ---
 name: cbe-data
-description: How to use the filesystems on CBE.next, the Vienna BioCenter HPC cluster ($HOME /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources, /resources/ngs). Covers performance characteristics, storage policies (backup, snapshots, retention, automatic deletion, quotas), folder layout and permissions, restoring files, and moving data between filesystems and to or from external endpoints (laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, EOS). Use whenever reading, writing, staging, copying, cleaning up, restoring, archiving, or transferring data on or from CBE.next.
+description: "Choose storage and transfer methods on CBE.next; stage job data, restore files, check quotas and permissions, or archive results. Use for /users, /scratch, job-local temporary storage, /groups, /clustertmp, and external transfers, including Globus and Azure archive."
+metadata:
+  display-name: "CBE data"
+  short-description: "Store, stage, restore, and transfer cluster data"
+  example-task: "plan storage and data staging for this workflow."
 ---
 
 # Data and filesystems on CBE.next

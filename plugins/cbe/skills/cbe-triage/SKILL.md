@@ -1,11 +1,15 @@
 ---
 name: cbe-triage
-description: Triage failed, crashed, killed, hanging, or misbehaving Slurm jobs on CBE.next, the Vienna BioCenter HPC cluster. Checks job logs and accounting data, compares them with previous successful runs, checks system-side causes (quota exceeded, scratch deletion, node failure, network or storage errors, maintenance), reproduces the problem with a minimal example, and, when the cause is unclear or needs cluster-side action, drafts an HPC Servicedesk ticket with the diagnosis, the steps taken, and the minimal reproducer. Use when a job failed, timed out, ran out of memory, was cancelled, produced wrong or missing output, or behaves differently than before.
+description: "Diagnose failed, timed-out, out-of-memory, hanging, or incorrect Slurm jobs on CBE.next using logs and accounting data. Compare successful runs, reproduce minimally, and draft an HPC Servicedesk ticket when needed. Use cbe-tuning for otherwise working jobs that need better performance."
+metadata:
+  display-name: "CBE job triage"
+  short-description: "Diagnose failed jobs and prepare support requests"
+  example-task: "diagnose this failed job from its script and logs."
 ---
 
 # Triage failed jobs on CBE.next
 
-This skill is for diagnosing your own jobs. HPC support staff investigating other users' jobs from a ticket use `cbe-support-triage`, which builds on this one.
+This skill is for diagnosing your own jobs.
 
 ## Principles
 

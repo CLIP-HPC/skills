@@ -1,0 +1,5 @@
+# Compatibility files are committed so installation never needs a build step.
+/.agents/plugins/marketplace.json linguist-generated=true
+/.claude-plugin/marketplace.json linguist-generated=true
+/plugins/*/.claude-plugin/plugin.json linguist-generated=true
+/plugins/*/skills/*/agents/openai.yaml linguist-generated=true

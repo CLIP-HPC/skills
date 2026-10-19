@@ -1,21 +1,65 @@
 # CLIP-HPC agent skills
 
-Agent skills for CBE.next, the Vienna BioCenter HPC cluster, packaged as a Claude Code plugin marketplace (`clip-hpc`).
+Shared Agent Skills for CBE.next, the Vienna BioCenter HPC cluster, distributed
+as the `cbe` plugin in the `clip-hpc` marketplace. The same six skill folders
+work in Codex and Claude Code.
 
-The skills teach an agent how to connect to CBE.next, submit and tune Slurm jobs, find software, handle data, triage failed jobs, and port workloads from legacy CBE. They follow the [CBE.next documentation](https://docs.vbc.ac.at/research-computing/cbe/).
+The canonical manifest is [`plugins/cbe/plugin.json`](plugins/cbe/plugin.json),
+using the [Agent Plugins 1.0.0 format](https://agent-plugins.org/schemas/1.0.0/plugin.schema.json).
+Host discovery files are generated and committed, so users can install directly
+from Git without Python, uv, or a build step.
+
+[`AGENTS.md`](AGENTS.md) contains instructions for agents maintaining this repo.
+It is outside the `plugins/cbe` package and the individual skill directories,
+so plugin and standalone-skill installation do not distribute it.
 
 ## Skills
 
-The `cbe` plugin contains six skills that refer to each other by name:
+Install the complete plugin: these skills refer to each other by name.
 
 | Skill | Use it to |
 |---|---|
-| `cbe-next` | Connect, follow the cluster rules, pick partitions and GPUs, and write batch scripts. Start here. |
+| `cbe-next` | Connect, follow cluster rules, pick partitions and GPUs, and write batch scripts. Start here. |
 | `cbe-software` | Find, load, or install software: modules, containers, `uv`, conda, licensed software. |
 | `cbe-data` | Choose filesystems, restore files, and move data on and off the cluster. |
 | `cbe-tuning` | Make jobs faster or request resources that match what they use. |
 | `cbe-triage` | Find out why a job failed and draft a support ticket. |
-| `cbe-migrate` | Port job scripts, data, and environments from legacy CBE before it shuts down on 2026-12-18. |
+| `cbe-migrate` | Port job scripts, data, and environments from legacy CBE before its 2026-12-18 shutdown. |
+
+The instructions follow the [CBE.next documentation](https://docs.vbc.ac.at/research-computing/cbe/).
+Executing cluster commands requires the user's existing SSH access and a valid
+certificate. The plugin itself needs no API key or MCP server. Ticket creation
+can use an available Atlassian integration; without one, the skills provide
+text for the support portal.
+
+## Install in Codex
+
+Using Codex CLI 0.163.0, the version checked by CI:
+
+```bash
+codex plugin marketplace add CLIP-HPC/skills
+codex plugin add cbe@clip-hpc
+```
+
+For an unpublished checkout, run `codex plugin marketplace add .` from its root
+instead of adding the GitHub repository, then install `cbe@clip-hpc`.
+The repo marketplace is also available as a local source in supported desktop
+clients; restart the app if the source has not appeared.
+
+In Codex, select the skill using `$` or `/skills`, or ask naturally:
+
+```text
+Use the cbe-next skill to adapt this sbatch script for CBE.next.
+```
+
+Refresh the marketplace after a release:
+
+```bash
+codex plugin marketplace upgrade clip-hpc
+codex plugin add cbe@clip-hpc
+```
+
+See [OpenAI's plugin packaging and marketplace documentation](https://developers.openai.com/plugins/build/plugins).
 
 ## Install in Claude Code
 
@@ -24,51 +68,123 @@ claude plugin marketplace add CLIP-HPC/skills
 claude plugin install cbe@clip-hpc
 ```
 
-Inside a Claude Code session, use `/plugin marketplace add CLIP-HPC/skills` and `/plugin install cbe@clip-hpc` instead.
+Inside a Claude Code session, use `/plugin marketplace add CLIP-HPC/skills`
+and `/plugin install cbe@clip-hpc` instead. Invoke a skill with
+`/cbe:cbe-next`, or ask naturally for help with a CBE.next task.
 
-HPC support and operations staff also install the `ops` plugin. It is listed in this marketplace but installs from the internal `CLIP-HPC/operator-skills` repository, so it only works with GitHub access to that repository:
-
-```bash
-claude plugin install ops@clip-hpc
-```
-
-Update later with:
+For local development, use `claude --plugin-dir ./plugins/cbe` from this checkout.
 
 ```bash
 claude plugin marketplace update clip-hpc
+claude plugin update cbe@clip-hpc
 ```
 
-## Use on claude.ai
+## Why generated compatibility files?
 
-Organization and personal skills on claude.ai are uploaded as one `.zip` per skill:
+The schema URL identifies a file format; it is not a plugin discovery directory.
+Codex supports the portable root `plugin.json`. Claude Code's documented manifest
+location is still `.claude-plugin/plugin.json`, and its marketplace location is
+`.claude-plugin/marketplace.json`. It can load standard components without a
+manifest, but that does not make it read the portable manifest's identity and
+version metadata.
+
+We therefore maintain one portable plugin manifest, one small source catalog,
+and one copy of each skill. Both host catalogs expose the same plugins and
+sources. `scripts/bundle.py` generates the host adapters:
+
+| Edit this source | Generated output |
+|---|---|
+| `plugins/cbe/plugin.json` | `plugins/cbe/.claude-plugin/plugin.json` |
+| `marketplace.json` plus portable plugin metadata | `.agents/plugins/marketplace.json` and `.claude-plugin/marketplace.json` |
+| Each skill's frontmatter `metadata` | Its `agents/openai.yaml` picker labels and example prompt |
+
+Root `marketplace.json` is this repository's authoring catalog, not a claim of
+a portable marketplace standard. Only the generated catalogs are read by hosts.
+There is no separate `.codex-plugin/plugin.json`, duplicated skill content,
+or per-user configuration checked into this repository. Automatic skill
+selection retains each host's default behavior.
+
+For direct Git deployment, commit generated adapters with their source changes.
+Consumers do not regenerate them. CI fails when any adapter is missing or stale;
+it does not push regenerated commits. Require the validation checks on the branch
+or commit used for deployment. Repository agents follow `AGENTS.md` to regenerate
+the adapters as part of each source change.
+
+References: [OpenAI plugin structure](https://developers.openai.com/plugins/build/plugins#plugin-structure),
+[Claude manifest reference](https://code.claude.com/docs/en/plugins-reference),
+and [Claude marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference).
+
+## Use standalone skills
+
+When a plugin install is unsuitable, link all six folders into a host's skill
+directory. The helper needs only Python 3.10+ and never replaces existing files.
 
 ```bash
-scripts/package-skills.sh                 # all six skills into dist/
-scripts/package-skills.sh cbe-triage      # a single skill
+# Codex: personal skills, available across projects.
+python3 scripts/install-skills.py --destination ~/.agents/skills
+
+# Codex: skills for a consuming project.
+python3 scripts/install-skills.py --destination /path/to/project/.agents/skills
+
+# Claude Code: personal skills using the same shared source folders.
+python3 scripts/install-skills.py --destination ~/.claude/skills
 ```
 
-## Layout
+Choose either plugin installation or standalone links in a given host to avoid
+duplicate skills. Keep this checkout at its current path while links point to
+it. To remove a standalone installation, remove only the six links the helper
+created. No other files need changing.
 
-```text
-.claude-plugin/marketplace.json           # marketplace catalogue
-plugins/cbe/.claude-plugin/plugin.json
-plugins/cbe/skills/<skill>/SKILL.md
-scripts/package-skills.sh                 # zip skills for claude.ai upload
+For a host that accepts uploaded Agent Skills, the existing helper builds one
+archive per skill:
+
+```bash
+scripts/package-skills.sh                 # all six into dist/
+scripts/package-skills.sh cbe-triage      # one skill
 ```
 
-## Change a skill
+## Develop and validate
 
-1. Edit `plugins/cbe/skills/<skill>/SKILL.md`.
-2. Bump `version` in `plugins/cbe/.claude-plugin/plugin.json`. Installed copies only update when the version changes.
-3. Validate:
+Maintainers need [uv](https://docs.astral.sh/uv/) and Python 3.10+. Dependencies
+are locked in `uv.lock`; they are not runtime requirements for the skills.
+
+1. Edit `plugins/cbe/skills/<skill>/SKILL.md`. Keep discovery descriptions concise;
+   place picker labels, the short description, and a neutral example task in its
+   frontmatter `metadata`.
+2. For a release, bump `version` in `plugins/cbe/plugin.json`. Change catalog
+   membership in root `marketplace.json`.
+3. Generate and validate:
 
    ```bash
-   claude plugin validate .
-   claude plugin validate plugins/cbe
+   uv run --locked python scripts/bundle.py
+   uv run --locked python scripts/validate.py
+   uv run --locked python -m unittest discover -s tests -v
    ```
 
-4. Commit with a COPS or RFC prefix where one applies, for example `COPS-239: agent: ...`.
+4. With Codex CLI 0.163.0 and Claude Code 2.1.292 installed, run:
 
-This repository is public. Keep facts to what the public documentation states. Support and operations material belongs in the internal `CLIP-HPC/operator-skills` repository, which the `ops` entry in this marketplace points to.
+   ```bash
+   uv run --locked python scripts/smoke-test.py
+   ```
 
-The skills state facts from the CBE.next pages on docs.vbc.ac.at (source: the `newdocs` repository). Until the CBE.next release, the authoritative source is the `review/final-state` branch of `newdocs`, not `main` or the live site. When those pages change, update the skills and bump the version.
+   This validates the Claude marketplace, plugin, and skills, then installs the
+   plugin in both clients using isolated temporary state. The Codex package omits
+   the Claude manifest. It verifies all six installed skills and their picker metadata.
+   It does not call a model, submit cluster jobs, or change your installed plugins.
+5. Run the [manual behavior scenarios](tests/scenarios.md) in a fresh conversation
+   when changing workflow instructions. Commit generated outputs with their sources.
+
+CI checks schemas, names, relative resource links, metadata, generated-file drift,
+archive contents, and regression tests on Linux and macOS. A separate job runs
+the pinned CLI compatibility smoke test without credentials. The published
+Agent Plugins schema is vendored under `schemas/` so schema validation is offline.
+No workflow publishes releases or changes your client configuration.
+
+This public bundle supports regular use of CBE / CLIP. Internal staff tooling
+is separate and is not required to install or use these skills. Keep facts to
+what the public documentation states.
+
+The skills state facts from the CBE.next pages on docs.vbc.ac.at (source: the
+`newdocs` repository). Until the CBE.next release, the authoritative source is
+the `review/final-state` branch of `newdocs`, not `main` or the live site. When
+those pages change, update the skills and bump the version.
