@@ -3,6 +3,8 @@
 # Run it from the shared clone, as root, on each host:
 #   /software/system/agents/skills/deploy/install-host.sh [--dry-run] [--remove]
 set -eu
+# Configuration must be readable by users even when root has a private umask.
+umask 022
 
 usage() {
   echo "usage: $0 [--dry-run] [--remove] [--root DIR]" >&2
@@ -56,13 +58,23 @@ owned() {
 place() {  # template target
   target=$prefix/$2
   content=$(sed "s#@SKILLS_CLONE@#$clone#g" "$deploy/$1")
+  unchanged=false
   if [ -f "$target" ] && [ "$(cat "$target")" = "$content" ]; then
     echo "unchanged: $target"
-    return
+    unchanged=true
+  else
+    echo "write: $target"
   fi
-  echo "write: $target"
   $dry_run && return
   mkdir -p "$(dirname "$target")"
+  # Repair directories created by older installs as well as new ones. Only
+  # change the client policy directories, not shared system or staging parents.
+  chmod 0755 "$(dirname "$target")"
+  case $2 in "$claude_dir/"*) chmod 0755 "$prefix/$claude_dir" ;; esac
+  if $unchanged; then
+    chmod 0644 "$target"
+    return
+  fi
   tmp=$(mktemp "$target.XXXXXX")
   printf '%s\n' "$content" > "$tmp"
   chmod 0644 "$tmp"

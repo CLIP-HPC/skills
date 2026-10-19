@@ -55,9 +55,9 @@ class HostTemplateTests(unittest.TestCase):
 class InstallHostScriptTests(unittest.TestCase):
     """Run deploy/install-host.sh against a staging root, never the real /etc."""
 
-    def run_script(self, root, *args):
+    def run_script(self, root, *args, umask=-1):
         return subprocess.run(["sh", str(DEPLOY / "install-host.sh"), "--root", str(root), *args],
-                              capture_output=True, text=True, cwd=root)
+                              capture_output=True, text=True, cwd=root, umask=umask)
 
     def targets(self, root):
         claude = ("Library/Application Support/ClaudeCode" if platform.system() == "Darwin"
@@ -91,6 +91,46 @@ class InstallHostScriptTests(unittest.TestCase):
             self.assertIn("merge deploy/codex/requirements.toml by hand", result.stderr)
             self.assertFalse(claude.exists() or config.exists())
             self.assertEqual(requirements.read_text(), 'allowed_approval_policies = ["never"]\n')
+
+    def test_private_umask_keeps_installed_configuration_readable(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = self.run_script(root, umask=0o077)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for target in self.targets(root):
+                self.assertEqual(target.stat().st_mode & 0o777, 0o644)
+                directory = target.parent
+                while directory != root:
+                    self.assertEqual(directory.stat().st_mode & 0o777, 0o755, str(directory))
+                    directory = directory.parent
+
+    def test_reinstall_repairs_permissions_without_rewriting_content(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.assertEqual(self.run_script(root).returncode, 0)
+            targets = self.targets(root)
+            directories = {target.parent for target in targets}
+            directories.add(targets[0].parent.parent)  # Claude's managed root.
+            original = {target: (target.read_bytes(), target.stat().st_mtime_ns) for target in targets}
+            for target in targets:
+                target.chmod(0o600)
+            for directory in directories:
+                directory.chmod(0o700)
+
+            dry_run = self.run_script(root, "--dry-run")
+            self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
+            for target in targets:
+                self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+            for directory in directories:
+                self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+
+            result = self.run_script(root, umask=0o077)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for target in targets:
+                self.assertEqual(target.stat().st_mode & 0o777, 0o644)
+                self.assertEqual((target.read_bytes(), target.stat().st_mtime_ns), original[target])
+            for directory in directories:
+                self.assertEqual(directory.stat().st_mode & 0o777, 0o755)
 
     def test_remove_keeps_foreign_files(self):
         with tempfile.TemporaryDirectory() as temporary:

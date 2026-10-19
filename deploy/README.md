@@ -50,8 +50,10 @@ It also trusts the clone in the system Git configuration (`git config --system
 --add safe.directory`), because each user's Codex clones it from an
 administrator-owned repository.
 
-Rerunning it is safe: files with the same content are left alone. It replaces
-only its own files: the Claude drop-in by its name, and the Codex files by
+Rerunning it is safe: files with the same content are not rewritten. It repairs
+managed file permissions to `0644` and client policy directories to `0755`,
+including when root uses a private umask. `--dry-run` does not change permissions.
+It replaces only its own files: the Claude drop-in by its name, and the Codex files by
 their first-line marker. If another file is already at one of these paths, it
 stops before changing anything. Merge the template by hand in that case; Codex
 has no drop-in directory. `--remove` deletes only its own files and the Git
