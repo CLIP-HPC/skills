@@ -1,5 +1,6 @@
 """Host configuration templates render to valid, stable settings."""
 import json
+import os
 from pathlib import Path
 import platform
 import re
@@ -150,6 +151,49 @@ class InstallHostScriptTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.count("write:"), 3)
             self.assertEqual(list(root.iterdir()), [])
+
+    def test_git_trust_covers_clone_and_upload_pack_without_changing_other_entries(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "gitconfig"
+            for entry in ("/another/repository", str(ROOT)):
+                subprocess.run(["git", "config", "--file", str(config), "--add",
+                                "safe.directory", entry], check=True)
+            environment = dict(os.environ, GIT_CONFIG_SYSTEM=str(config))
+
+            def configure(*args):
+                # Source the installer with a staging root, then exercise its
+                # system-Git helper against an isolated configuration file.
+                return subprocess.run([
+                    "sh", "-c", 'stage=$1; shift; set -- --root "$stage" "$@"; '
+                    '. "$0"; configure_git_trust', str(DEPLOY / "install-host.sh"),
+                    str(root), *args,
+                ], env=environment, capture_output=True, text=True, cwd=root)
+
+            before = config.read_bytes()
+            dry_run = configure("--dry-run")
+            self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
+            self.assertIn(f"git: add safe.directory {ROOT}/.git", dry_run.stdout)
+            self.assertEqual(config.read_bytes(), before)
+            for _ in range(2):
+                result = configure()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                entries = subprocess.check_output([
+                    "git", "config", "--file", str(config), "--get-all", "safe.directory",
+                ], text=True).splitlines()
+                self.assertEqual(entries, ["/another/repository", str(ROOT), str(ROOT / ".git")])
+
+            before_remove = config.read_bytes()
+            dry_remove = configure("--remove", "--dry-run")
+            self.assertEqual(dry_remove.returncode, 0, dry_remove.stderr)
+            self.assertIn(f"git: remove safe.directory {ROOT}/.git", dry_remove.stdout)
+            self.assertEqual(config.read_bytes(), before_remove)
+            result = configure("--remove")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            remaining = subprocess.check_output([
+                "git", "config", "--file", str(config), "--get-all", "safe.directory",
+            ], text=True).splitlines()
+            self.assertEqual(remaining, ["/another/repository"])
 
 
 if __name__ == "__main__":

@@ -46,9 +46,10 @@ script works for any clone. It writes:
 | `/etc/codex/config.toml` | `deploy/codex/config.toml` |
 | `/etc/codex/requirements.toml` | `deploy/codex/requirements.toml` |
 
-It also trusts the clone in the system Git configuration (`git config --system
---add safe.directory`), because each user's Codex clones it from an
-administrator-owned repository.
+It also trusts both the clone and its `.git` directory in the system Git
+configuration (`git config --system --add safe.directory`). Git checks the clone
+for ordinary commands, but local cloning checks its administrator-owned `.git`
+directory separately. Both entries are needed for Codex's automatic installation.
 
 Rerunning it is safe: files with the same content are not rewritten. It repairs
 managed file permissions to `0644` and client policy directories to `0755`,

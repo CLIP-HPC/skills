@@ -104,16 +104,22 @@ echo "$files" | while IFS=: read -r template target; do
   if $remove; then unplace "$target"; else place "$template" "$target"; fi
 done
 
-# Codex clones the shared repository as each user; Git refuses foreign-owned
-# repositories unless they are trusted.
-if [ "$root" = / ] && command -v git >/dev/null; then
-  if $remove; then
-    if git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$clone"; then
-      echo "git: remove safe.directory $clone"
-      $dry_run || git config --system --fixed-value --unset-all safe.directory "$clone"
+# Git checks the worktree for rev-parse, but local clone/upload-pack checks
+# the .git directory. Both are administrator-owned and need explicit trust.
+configure_git_trust() {
+  for safe_path in "$clone" "$clone/.git"; do
+    if $remove; then
+      if git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$safe_path"; then
+        echo "git: remove safe.directory $safe_path"
+        $dry_run || git config --system --fixed-value --unset-all safe.directory "$safe_path"
+      fi
+    elif ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$safe_path"; then
+      echo "git: add safe.directory $safe_path"
+      $dry_run || git config --system --add safe.directory "$safe_path"
     fi
-  elif ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$clone"; then
-    echo "git: add safe.directory $clone"
-    $dry_run || git config --system --add safe.directory "$clone"
-  fi
+  done
+}
+
+if [ "$root" = / ] && command -v git >/dev/null; then
+  configure_git_trust
 fi
