@@ -1,4 +1,4 @@
-# Managed by CLIP-HPC deploy/codex/install.py.
+# Managed by CLIP-HPC deploy/install.py.
 check_for_update_on_startup = false
 
 [features]
