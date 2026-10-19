@@ -1,5 +1,5 @@
 #!/bin/sh
-# Managed by CLIP-HPC deploy/codex/install.py.
+# Managed by CLIP-HPC deploy/install.py.
 set -eu
 
 # Install into the invoking user's CODEX_HOME, never root's shared state.

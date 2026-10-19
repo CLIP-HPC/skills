@@ -61,8 +61,6 @@ codex plugin add cbe@clip-hpc
 
 See [OpenAI's plugin packaging and marketplace documentation](https://developers.openai.com/plugins/build/plugins).
 
-For centrally managed Unix hosts, see [`deploy/codex`](deploy/codex/README.md)
-for enforced update controls and automatic local marketplace/plugin installation.
 
 ## Install in Claude Code
 
@@ -81,6 +79,12 @@ For local development, use `claude --plugin-dir ./plugins/cbe` from this checkou
 claude plugin marketplace update clip-hpc
 claude plugin update cbe@clip-hpc
 ```
+
+## Managed hosts
+
+To enable `cbe` for every Claude Code and Codex user on shared Unix hosts, such
+as the CBE.next login nodes, from a reviewed local snapshot with client updates
+under central control, see [`deploy/`](deploy/README.md).
 
 ## Why generated compatibility files?
 

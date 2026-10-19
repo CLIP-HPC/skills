@@ -1,0 +1,16 @@
+{
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "extraKnownMarketplaces": {
+    "clip-hpc": {
+      "source": {
+        "source": "directory",
+        "path": @MARKETPLACE_ROOT@
+      }
+    }
+  },
+  "enabledPlugins": {
+    "cbe@clip-hpc": true
+  }
+}
