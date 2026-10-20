@@ -7,7 +7,8 @@ plugins = true
 # A git source makes Codex install and update cbe for each user at startup.
 [marketplaces.clip-hpc]
 source_type = "git"
-source = "@SKILLS_CLONE@"
+source = "https://github.com/CLIP-HPC/skills.git"
+ref = "@SKILLS_REF@"
 
 [plugins."cbe@clip-hpc"]
 enabled = true

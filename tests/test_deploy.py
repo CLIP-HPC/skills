@@ -15,31 +15,40 @@ except ImportError:  # Python 3.10
 
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY = ROOT / "deploy"
-CLONE = "/software/system/agents/skills"
+REF = "v1.2.3"
+REPOSITORY = "CLIP-HPC/skills"
 
 
 def render(relative):
     text = (DEPLOY / relative).read_text()
-    # The clone path is the only site-specific value; nothing else may vary per release.
+    # The Git ref is the only per-host value; nothing else may vary per release.
     placeholders = set(re.findall(r"@[A-Z_]+@", text))
-    assert placeholders <= {"@SKILLS_CLONE@"}, placeholders
-    return text.replace("@SKILLS_CLONE@", CLONE)
+    assert placeholders <= {"@SKILLS_REF@"}, placeholders
+    return text.replace("@SKILLS_REF@", REF)
 
 
 class HostTemplateTests(unittest.TestCase):
     def test_claude_managed_settings(self):
         settings = json.loads(render("claude/50-clip-hpc.json"))
-        self.assertEqual(settings["extraKnownMarketplaces"]["clip-hpc"]["source"],
-                         {"source": "directory", "path": CLONE})
+        self.assertEqual(settings["extraKnownMarketplaces"]["clip-hpc"], {
+            "source": {"source": "github", "repo": REPOSITORY, "ref": REF},
+            "autoUpdate": True,
+        })
         self.assertEqual(settings["enabledPlugins"], {"cbe@clip-hpc": True})
-        self.assertEqual(settings["env"], {"DISABLE_UPDATES": "1", "DISABLE_AUTOUPDATER": "1"})
+        # Claude Code itself stays pinned; plugins keep updating, over HTTPS
+        # because users have no GitHub SSH keys.
+        self.assertEqual(settings["env"], {
+            "DISABLE_UPDATES": "1", "DISABLE_AUTOUPDATER": "1",
+            "FORCE_AUTOUPDATE_PLUGINS": "1", "CLAUDE_CODE_PLUGIN_PREFER_HTTPS": "1",
+        })
 
     @unittest.skipIf(tomllib is None, "tomllib needs Python 3.11")
     def test_codex_config_and_requirements(self):
         config = tomllib.loads(render("codex/config.toml"))
         # Only git marketplaces make Codex install configured plugins at startup.
-        self.assertEqual(config["marketplaces"]["clip-hpc"],
-                         {"source_type": "git", "source": CLONE})
+        self.assertEqual(config["marketplaces"]["clip-hpc"], {
+            "source_type": "git", "source": f"https://github.com/{REPOSITORY}.git", "ref": REF,
+        })
         self.assertEqual(config["plugins"], {"cbe@clip-hpc": {"enabled": True}})
         self.assertIs(config["check_for_update_on_startup"], False)
         requirements = tomllib.loads(render("codex/requirements.toml"))
@@ -66,20 +75,40 @@ class InstallHostScriptTests(unittest.TestCase):
         return [root / claude / "managed-settings.d/50-clip-hpc.json",
                 root / "etc/codex/config.toml", root / "etc/codex/requirements.toml"]
 
-    def test_install_is_idempotent_and_points_at_this_clone(self):
+    def test_install_is_idempotent_and_follows_main_by_default(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             first = self.run_script(root)
             self.assertEqual(first.returncode, 0, first.stderr)
             claude, config, requirements = self.targets(root)
             settings = json.loads(claude.read_text())
-            self.assertEqual(settings["extraKnownMarketplaces"]["clip-hpc"]["source"]["path"], str(ROOT))
-            self.assertIn(f'source = "{ROOT}"', config.read_text())
+            self.assertEqual(settings["extraKnownMarketplaces"]["clip-hpc"]["source"]["ref"], "main")
+            self.assertIn('ref = "main"', config.read_text())
             for path in (claude, config, requirements):
                 self.assertEqual(path.stat().st_mode & 0o777, 0o644)
-                self.assertNotIn("@SKILLS_CLONE@", path.read_text())
+                self.assertNotIn("@SKILLS_REF@", path.read_text())
             second = self.run_script(root)
             self.assertEqual(second.stdout.count("unchanged:"), 3, second.stdout)
+
+    def test_version_selects_the_ref_for_both_clients(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.assertEqual(self.run_script(root).returncode, 0)
+            result = self.run_script(root, "--version", "v0.3.0")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.count("write:"), 2, result.stdout)
+            claude, config, _ = self.targets(root)
+            settings = json.loads(claude.read_text())
+            self.assertEqual(settings["extraKnownMarketplaces"]["clip-hpc"]["source"]["ref"], "v0.3.0")
+            self.assertIn('ref = "v0.3.0"', config.read_text())
+
+    def test_unsafe_version_is_rejected_before_any_change(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for version in ("", "--remove", 'main"', "a#b", "a&b", "a b"):
+                result = self.run_script(root, "--version", version)
+                self.assertNotEqual(result.returncode, 0, version)
+            self.assertEqual(list(root.iterdir()), [])
 
     def test_foreign_file_stops_before_any_change(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -152,49 +181,38 @@ class InstallHostScriptTests(unittest.TestCase):
             self.assertEqual(result.stdout.count("write:"), 3)
             self.assertEqual(list(root.iterdir()), [])
 
-    def test_git_trust_covers_clone_and_upload_pack_without_changing_other_entries(self):
+    def test_legacy_git_trust_is_removed_without_changing_other_entries(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             config = root / "gitconfig"
-            for entry in ("/another/repository", str(ROOT)):
+            for entry in ("/another/repository", str(ROOT), str(ROOT / ".git")):
                 subprocess.run(["git", "config", "--file", str(config), "--add",
                                 "safe.directory", entry], check=True)
             environment = dict(os.environ, GIT_CONFIG_SYSTEM=str(config))
 
-            def configure(*args):
+            def cleanup(*args):
                 # Source the installer with a staging root, then exercise its
                 # system-Git helper against an isolated configuration file.
                 return subprocess.run([
                     "sh", "-c", 'stage=$1; shift; set -- --root "$stage" "$@"; '
-                    '. "$0"; configure_git_trust', str(DEPLOY / "install-host.sh"),
+                    '. "$0"; remove_legacy_git_trust', str(DEPLOY / "install-host.sh"),
                     str(root), *args,
                 ], env=environment, capture_output=True, text=True, cwd=root)
 
-            before = config.read_bytes()
-            dry_run = configure("--dry-run")
-            self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
-            self.assertIn(f"git: add safe.directory {ROOT}/.git", dry_run.stdout)
-            self.assertEqual(config.read_bytes(), before)
-            for _ in range(2):
-                result = configure()
-                self.assertEqual(result.returncode, 0, result.stderr)
-                entries = subprocess.check_output([
+            def entries():
+                return subprocess.check_output([
                     "git", "config", "--file", str(config), "--get-all", "safe.directory",
                 ], text=True).splitlines()
-                self.assertEqual(entries, ["/another/repository", str(ROOT), str(ROOT / ".git")])
 
-            before_remove = config.read_bytes()
-            dry_remove = configure("--remove", "--dry-run")
-            self.assertEqual(dry_remove.returncode, 0, dry_remove.stderr)
-            self.assertIn(f"git: remove safe.directory {ROOT}/.git", dry_remove.stdout)
-            self.assertEqual(config.read_bytes(), before_remove)
-            result = configure("--remove")
-            self.assertEqual(result.returncode, 0, result.stderr)
-            remaining = subprocess.check_output([
-                "git", "config", "--file", str(config), "--get-all", "safe.directory",
-            ], text=True).splitlines()
-            self.assertEqual(remaining, ["/another/repository"])
-
+            before = config.read_bytes()
+            dry_run = cleanup("--dry-run")
+            self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
+            self.assertIn(f"git: remove safe.directory {ROOT}/.git", dry_run.stdout)
+            self.assertEqual(config.read_bytes(), before)
+            for _ in range(2):
+                result = cleanup()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(entries(), ["/another/repository"])
 
 if __name__ == "__main__":
     unittest.main()
