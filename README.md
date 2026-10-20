@@ -80,6 +80,12 @@ claude plugin marketplace update clip-hpc
 claude plugin update cbe@clip-hpc
 ```
 
+In Claude Code, the plugin also adds a hook that asks before Bash commands that
+delete, move, or overwrite files under `/groups`. It runs only where `/groups`
+exists and uses `python3` from `PATH`. Set `CBE_GROUPS_GUARD=off` to disable it,
+or `CBE_PROTECTED_PATHS` to a colon-separated list of other roots to protect.
+Codex and the skill-only installation don't include the hook.
+
 ## Managed hosts
 
 To enable `cbe` for every Claude Code and Codex user on shared Unix hosts, such

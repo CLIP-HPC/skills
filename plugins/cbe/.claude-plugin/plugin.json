@@ -1,6 +1,6 @@
 {
   "name": "cbe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
   "author": {
     "name": "CLIP-HPC"
