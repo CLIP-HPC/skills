@@ -1,25 +1,28 @@
 #!/bin/sh
 # Install or remove the CLIP-HPC host configuration for Claude Code and Codex.
-# Run it from the shared clone, as root, on each host:
-#   /software/system/agents/skills/deploy/install-host.sh [--dry-run] [--remove]
+# Run it from a checkout of CLIP-HPC/skills, as root, on each host:
+#   deploy/install-host.sh [--version REF] [--dry-run] [--remove]
 set -eu
 # Configuration must be readable by users even when root has a private umask.
 umask 022
 
 usage() {
-  echo "usage: $0 [--dry-run] [--remove] [--root DIR]" >&2
+  echo "usage: $0 [--version REF] [--dry-run] [--remove] [--root DIR]" >&2
   exit 2
 }
 
 MARKER="Managed by CLIP-HPC deploy/install-host.sh"
 root=/
+version=main
 dry_run=false
 remove=false
 while [ $# -gt 0 ]; do
   case $1 in
+    # Git branch or tag of CLIP-HPC/skills that clients install and follow.
+    --version) [ $# -ge 2 ] || usage; version=$2; shift ;;
     --dry-run) dry_run=true ;;
     --remove) remove=true ;;
-    # Staging root for tests and image builds; written paths still name the real clone.
+    # Staging root for tests and image builds.
     --root) [ $# -ge 2 ] || usage; root=$2; shift ;;
     -h|--help) usage ;;
     *) usage ;;
@@ -27,15 +30,11 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# The clone is wherever this script lives; keep the logical path, as users see it.
-deploy=$(cd "$(dirname "$0")" && pwd)
-clone=$(dirname "$deploy")
-for required in .git .claude-plugin/marketplace.json .agents/plugins/marketplace.json plugins/cbe; do
-  [ -e "$clone/$required" ] || { echo "error: $clone is not a clone of CLIP-HPC/skills (missing $required)" >&2; exit 1; }
-done
-case $clone in
-  *'#'*|*'&'*|*'\'*|*'"'*) echo "error: unsupported characters in clone path: $clone" >&2; exit 1 ;;
+case $version in
+  ''|-*|*[!A-Za-z0-9._/-]*) echo "error: --version must be a branch or tag name: $version" >&2; exit 1 ;;
 esac
+# Keep the logical path, as users see it.
+deploy=$(cd "$(dirname "$0")" && pwd)
 if [ "$root" = / ] && ! $dry_run && [ "$(id -u)" -ne 0 ]; then
   echo "error: run as root (or use --dry-run)" >&2
   exit 1
@@ -57,7 +56,7 @@ owned() {
 
 place() {  # template target
   target=$prefix/$2
-  content=$(sed "s#@SKILLS_CLONE@#$clone#g" "$deploy/$1")
+  content=$(sed "s#@SKILLS_REF@#$version#g" "$deploy/$1")
   unchanged=false
   if [ -f "$target" ] && [ "$(cat "$target")" = "$content" ]; then
     echo "unchanged: $target"
@@ -104,22 +103,18 @@ echo "$files" | while IFS=: read -r template target; do
   if $remove; then unplace "$target"; else place "$template" "$target"; fi
 done
 
-# Git checks the worktree for rev-parse, but local clone/upload-pack checks
-# the .git directory. Both are administrator-owned and need explicit trust.
-configure_git_trust() {
-  for safe_path in "$clone" "$clone/.git"; do
-    if $remove; then
-      if git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$safe_path"; then
-        echo "git: remove safe.directory $safe_path"
-        $dry_run || git config --system --fixed-value --unset-all safe.directory "$safe_path"
-      fi
-    elif ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$safe_path"; then
-      echo "git: add safe.directory $safe_path"
-      $dry_run || git config --system --add safe.directory "$safe_path"
+# Earlier versions served the plugin from this checkout and trusted it in the
+# system Git configuration. Clients now fetch from GitHub, so drop that trust.
+remove_legacy_git_trust() {
+  checkout=$(dirname "$deploy")
+  for safe_path in "$checkout" "$checkout/.git"; do
+    if git config --system --get-all safe.directory 2>/dev/null | grep -qxF "$safe_path"; then
+      echo "git: remove safe.directory $safe_path"
+      $dry_run || git config --system --fixed-value --unset-all safe.directory "$safe_path"
     fi
   done
 }
 
 if [ "$root" = / ] && command -v git >/dev/null; then
-  configure_git_trust
+  remove_legacy_git_trust
 fi

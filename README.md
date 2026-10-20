@@ -89,7 +89,7 @@ Codex and the skill-only installation don't include the hook.
 ## Managed hosts
 
 To enable `cbe` for every Claude Code and Codex user on shared Unix hosts, such
-as the CBE.next nodes, from a shared clone of this repository with client
+as the CBE.next nodes, installed from this repository on GitHub with client
 updates under central control, see [`deploy/`](deploy/README.md).
 
 ## Why generated compatibility files?
