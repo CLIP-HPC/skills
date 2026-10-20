@@ -1,6 +1,6 @@
 ---
 name: cbe-data
-description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources and /resources/ngs, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS."
+description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use before deleting, moving, renaming, or overwriting any file or directory under /groups (rm, mv, find -delete, rsync --delete, rclone sync, shell redirection onto an existing file), even for a quick cleanup, when the user names only a relative path and the working directory is under /groups, and when recovering something deleted by mistake. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources and /resources/ngs, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS."
 metadata:
   display-name: "CBE data"
   short-description: "Store, stage, restore, and transfer cluster data"
@@ -13,7 +13,7 @@ Facts below reflect the docs as of 2026-10-19. Items marked *not available yet* 
 
 ## Hard rules
 
-- **Never delete, overwrite, or move anything in `/groups` without explicit confirmation.** Show the user the exact paths first, and wait for a yes for those paths. This applies to every tool that can destroy data, not just `rm`:
+- **Never delete, overwrite, or move anything in `/groups` without explicit confirmation.** Show the user the exact paths first, and wait for a yes for those paths. A request such as "delete the experiment directory" names the target but isn't that confirmation: list what is inside, point out anything that looks important, and ask. Relative paths count when the working directory is under `/groups`. This applies to every tool that can destroy data, not just `rm`:
   - `rm -r`, `find -delete`, `mv` onto existing names, and shell redirection (`>`) onto existing files;
   - `rsync --delete` and any `--delete-*` option;
   - `rclone sync`;
@@ -21,6 +21,7 @@ Facts below reflect the docs as of 2026-10-19. Items marked *not available yet* 
 - Group data belongs to the whole group. A path inside someone else's `user/<name>` folder, or in `lab`, isn't yours to clean up.
 - Never use a `/groups` path as the target of a destructive glob or variable that might be empty, for example `rm -rf "$OUTDIR"/`. Check the variable first.
 - Snapshots and backups exist, but they don't make deletion safe: restores take time, and the newest changes may not be captured yet.
+- When installed as a Claude Code plugin, `cbe` also adds a hook that asks the user before Bash commands that delete, move, or overwrite paths under `/groups`. It is a safety net, not a substitute for asking first: if it prompts, you skipped a step.
 - In `/clustertmp`, delete only what you staged yourself in this session. It's a shared area that all campus users can write to.
 - Never leave the only copy of anything important on `/scratch`, in per-job `/tmp` or `/dev/shm`, or in `/clustertmp`. All of them are deleted automatically.
 - Never put passwords, tokens, keys, or SAS URLs in job scripts or logs.
@@ -86,6 +87,7 @@ ls /users/.snapshot
 ```
 
 - Snapshot names include the time, for example `hourly.2026-10-13_0905`.
+- Files created and deleted between two snapshots aren't in any snapshot. Compare the file's timestamps with the snapshot names, and if no snapshot can have it, tell the user plainly.
 - Restore to a new name or ask before overwriting an existing file.
 - For anything older than the oldest snapshot, the HPC Servicedesk can restore from backup within 180 days.
 - `/scratch` and `/clustertmp` have no snapshots.
