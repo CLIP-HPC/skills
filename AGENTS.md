@@ -65,7 +65,9 @@ therefore needs a version bump, so use versions sparingly:
   intermediate step.
 - After merging, release: tag the merge commit on `main` as `v<version>`, push
   the tag, and create a GitHub release with notes from the commits since the
-  previous tag (`gh release create v<version> --generate-notes`).
+  previous tag (`gh release create v<version> --generate-notes`). The release
+  workflow then checks the tag against the manifest version and moves the tag
+  `latest` to the newest release. Never move `latest` by hand.
 - Use semantic versions: patch for fixes and corrected facts, minor for new
   skills or workflows, major for incompatible changes to installation or
   plugin layout.
