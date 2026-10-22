@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  latest:
+    name: Move the latest tag
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+      - name: Check the tag against the manifest version
+        run: |
+          version="$(jq -r .version plugins/cbe/plugin.json)"
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Release tag $TAG does not match plugins/cbe/plugin.json version $version"
+            exit 1
+          fi
+      - name: Point latest at the newest release
+        run: |
+          # A patch release for an older line must not move latest backwards.
+          newest="$(git tag -l 'v[0-9]*' --sort=-version:refname | head -n 1)"
+          if [ "$TAG" != "$newest" ]; then
+            echo "$TAG is older than $newest; leaving latest unchanged."
+            exit 0
+          fi
+          git tag -f latest "$TAG^{commit}"
+          git push -f origin refs/tags/latest
