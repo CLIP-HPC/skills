@@ -39,7 +39,7 @@ Each partition is its own queue: a `g` job doesn't compete with a `c` job. Preem
 
 ### 2. Fair-share: Fair Tree over the account hierarchy
 
-Accounts form a tree: holding (`vbc`, `oeaw`, ...) → institute (`vbc_imba`, `vbc_gmi`, ...) → lab or group (`vbc_imba_<lab>`) → users. Slurm compares each branch only with its siblings:
+Accounts form a tree: holding (`vbc`, `oeaw`, ...) → institute (`vbc_imba`, `vbc_gmi`, ...) → lab or group (`vbc_imba_<lab>`, or `vbc_shared_is` under `vbc_gmi`) → users. Names don't always show the parent. Slurm compares each branch only with its siblings:
 
 - **LevelFS** = share relative to siblings ÷ usage relative to siblings. Above 1 means the branch used less than its share recently (under-served), below 1 means more. `inf` means no recent usage.
 - Slurm walks the tree from the top, sorting siblings by LevelFS, and ranks all users. The **FairShare factor** (0–1) is that rank position, so it's relative: 1.0 is the front of the cluster-wide order, near 0 the back. A value of 0.15 does not mean "15% priority"; it means many other users currently rank ahead.
@@ -77,13 +77,15 @@ sprio -l -u $USER
 sacctmgr -nP show user $USER withassoc format=DefaultAccount,Account
 ```
 
-For the account used by the pending jobs (`squeue -o %a`, or the default account), show the chain from the holding down to the user, and the lab's users:
+For the account used by the pending jobs (`squeue -o %a`, or the default account), show the chain from the root down to the user, and the lab's users. The filter follows the tree indentation, because account names don't always contain their parent's name (`vbc_shared_is` sits under `vbc_gmi`). Report every level of the chain:
 
 ```bash
 lab=<account>
 sshare -l -a -P -o Account,User,RawShares,NormShares,EffectvUsage,LevelFS,FairShare \
-  | awk -F'|' -v lab="$lab" -v me="$USER" '{a=$1; gsub(/^ +/, "", a)}
-      NR==1 || (index(lab "_", a "_") == 1 && ($2 == "" || $2 == me))'
+  | awk -F'|' -v lab="$lab" -v me="$USER" 'NR==1 {print; next}
+      {a=$1; d=match(a, /[^ ]/); gsub(/^ +/, "", a)}
+      $2 == "" {up[d]=$0; if (a == lab) for (i=1; i<=d; i++) if (i in up) print up[i]}
+      a == lab && $2 == me'
 sshare -l -a -A "$lab" -o User%25,RawUsage,EffectvUsage,LevelFS,FairShare
 ```
 
