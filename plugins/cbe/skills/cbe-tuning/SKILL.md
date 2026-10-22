@@ -1,6 +1,6 @@
 ---
 name: cbe-tuning
-description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data (sacct, jobeff, jobinfo) and small parameter sweeps. Use for slow jobs, long queue waits, over- or under-requested CPU, memory, GPU, or time, thread settings, job arrays for trivially parallel work, storage I/O bottlenecks, full B200 versus MIG choice, and scaling or parallelising a workload; use cbe-triage for failed jobs."
+description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data (sacct, jobeff, jobinfo) and small parameter sweeps. Use for slow jobs, shortening queue waits by right-sizing requests, over- or under-requested CPU, memory, GPU, or time, thread settings, job arrays for trivially parallel work, storage I/O bottlenecks, full B200 versus MIG choice, and scaling or parallelising a workload; use cbe-queue to explain priority and job start order, and cbe-triage for failed jobs."
 metadata:
   display-name: "CBE job tuning"
   short-description: "Tune Slurm resources using measured job performance"
@@ -45,7 +45,7 @@ Look for:
 - **CPU efficiency** (`TotalCPU` against `Elapsed × AllocCPUS`). Low means over-requested CPUs, a tool not using its threads, or an I/O-bound job.
 - **Memory** (`MaxRSS` against the request). Size the next request to the peak of comparable runs plus a margin, not to a single run.
 - **Runtime** against `--time`. Accurate time limits start sooner through backfill; the scheduler plans up to 30 days ahead in 5-minute steps.
-- **Queue wait** (`sacct ... --format=Submit,Start`). Long waits often mean oversized requests, not a busy cluster; check `sprio -l -j <id>` and `sshare -l`.
+- **Queue wait** (`sacct ... --format=Submit,Start`). Long waits often mean oversized requests, not a busy cluster; to explain priority and fair-share, use the `cbe-queue` skill.
 - **Variation** across inputs of different sizes. That suggests sizing per input class.
 
 Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and set `--mem` explicitly. A request should fit comfortably in one node unless the job is genuinely multi-node.

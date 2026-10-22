@@ -107,7 +107,7 @@ Interactive: `salloc --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `
 ## Diagnose
 
 - Pending: run `squeue --me --start` and `scontrol show job <id> | grep -E "JobState|Reason"`. Common reasons: `Priority`/`Resources` mean wait or shrink the request; `ReqNodeNotAvail` usually means maintenance; `DependencyNeverSatisfied` means cancel and fix; `JobHeldAdmin` means contact support.
-- Priority: fair share with a 7-day half-life plus age. Inspect with `sprio -l -j <id>` and `sshare -l`. There's no preemption.
+- Priority: fair share with a 7-day half-life plus age. Inspect with `sprio -l -j <id>` and `sshare -l`. There's no preemption. To explain why a job waits or why others started first, use the `cbe-queue` skill.
 - Site tools (on `PATH`): `jobinfo <id>`, `jobeff --me`, `showuserlimits`, `showpartitions -g`, `pestat -p c`, `showjobreasons`, `showuserjobs`.
 - Failed job: use the `cbe-triage` skill.
 - Slow job, or sizing and optimising resource requests: use the `cbe-tuning` skill.
