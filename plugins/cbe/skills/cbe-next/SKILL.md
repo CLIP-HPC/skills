@@ -43,8 +43,9 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 | `g` | `cbe-g5-[1-8]` | 192 | about 1.5 TB | 7,600 MB | 8× B200 (4 full + 28 MIG slices per node) |
 | `m` | `cbe-m3-[1-4]` | 160 (4× Intel Xeon Platinum 8460H) | about 7.9 TB | 3,800 MB | none |
 
-- Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Always request the memory explicitly, for example `--mem=2T`; the default per CPU is the same as on `c`.
+- Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Slurm rejects `m` jobs without an explicit memory request of at least 700,000 MB per node (`--mem`) or 21,875 MB per CPU (`--mem-per-cpu`), for example `--mem=2T`.
 - No node uses SMT, so one Slurm CPU is one physical core.
+- Slurm rejects `--mem=0` (all memory) on every partition, and `g` jobs that request no GPU.
 - The partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`) is open only to the grid experiment groups; `sinfo` doesn't show it to other users.
 - Array indices: 0–3000.
 - Per-job temporary storage, both deleted when the job ends:
@@ -62,7 +63,7 @@ Partitions have no time limit; the QOS sets the maximum run time, per-user and t
 | `short` (default) | 8 hours | high | Most jobs |
 | `medium` | 2 days | medium | Jobs that can't finish in 8 hours |
 | `long` | 14 days | low | Jobs that can't be split or checkpointed |
-| `interactive` | 12 hours | highest | `salloc` sessions and OpenOnDemand; per user at most 5 jobs, 48 CPUs, 2 GPUs (full and MIG together), and 1,000 GB memory |
+| `interactive` | 12 hours | highest | Interactive sessions; OpenOnDemand sessions get it automatically; per user at most 5 jobs, 48 CPUs, 2 GPUs (full and MIG together), and 1,000 GB memory |
 
 - Caps on running jobs: `c_short` 1,152 CPUs per user; `c_medium` 460 CPUs per user and 1,152 in total; `c_long` 230 per user and 460 in total; `g_medium` 16 full B200s, 112 MIG slices, and 768 CPUs; `g_long` 8 full B200s, 56 MIG slices, and 384 CPUs (for `g`, per user and in total alike). `rapid`, the other `short` levels, and all `m` levels have no caps.
 - A job over its QOS time limit is rejected at submission. Jobs over a cap wait with `QOSMax*PerUser` (the user's own jobs) or `QOSGrp*` (the tier is full).
@@ -88,7 +89,9 @@ Create `logs/` before submitting. For arrays, use `--array=0-N%K` and `--output=
 
 Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `salloc` without a command opens a shell directly on the compute node; `exit` ends the allocation.
 
-On weekdays from 09:00 to 17:00, the reservations `interactive` (96 cores on `cbe-c3-2`) and `interactive_gpu` (24 cores and 7 MIG slices on `cbe-g5-8`) keep resources free for jobs with `--qos=interactive`. Add `--reservation=interactive`, or `--partition=g --reservation=interactive_gpu --gres=gpu:nvidia_b200_1g.23gb:1`. Outside these hours, or when the reservation is full, use `--qos=interactive` alone.
+- Jobs without a batch script (`salloc`, `srun` outside a job) are limited to 4 hours, whatever `--time` says. For longer interactive work, use OpenOnDemand.
+- On weekdays from 09:00 to 17:00, the reservations `interactive` (96 cores on `cbe-c3-2`) and `interactive_gpu` (24 cores and 7 MIG slices on `cbe-g5-8`) keep resources free for interactive jobs. The submit hook adds the partition's reservation to every job with `--qos=interactive`, and sets `--qos=interactive` on jobs that request either reservation, so one of the two options is enough. The reservations are flexible: such jobs can also start outside these hours or on other nodes.
+- A GPU session: `salloc --partition=g --qos=interactive --gres=gpu:nvidia_b200_1g.23gb:1 --time=01:00:00 --cpus-per-task=4 --mem=16G`.
 
 ## GPUs (partition `g`)
 
