@@ -103,7 +103,7 @@ ls /users/.snapshot
 | Azure archive (cold data) | AzCopy | See below. |
 | External collaborators, small data | ACOnet FileSender (https://filesender.aco.net/) | Browser-based; up to 90 files and 250 GB per transfer. |
 | S3, Azure Blob, SharePoint/OneDrive, WebDAV, SFTP | `rclone` | Configure a remote once with `rclone config` (stored in `$HOME`). Use `rclone copy`, run large copies as batch jobs, and verify with `rclone check`. `rclone sync` deletes files at the destination: dry-run first (`--dry-run`) and get approval. |
-| EOS, XRootD, VOMS (HEP) | `/eos` FUSE mount; `eos` client on login nodes | `xrdcp`, `xrdfs`, and the VOMS tools are *not available yet*; the grid partition isn't configured. |
+| EOS, XRootD, VOMS (HEP) | `/eos` FUSE mount; `eos` client on login nodes | `xrdcp`, `xrdfs`, and the VOMS tools are *not available yet*. The partition `grid` is open only to the grid experiment groups. |
 
 Before a large transfer, confirm the source, destination, and free quota. After it, verify file counts and checksums, or rely on the tool's own verification (`rclone check`, AzCopy `--put-md5`).
 
