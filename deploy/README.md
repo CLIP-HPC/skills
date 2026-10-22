@@ -114,7 +114,7 @@ claude plugin list                          # cbe@clip-hpc enabled, read from th
 codex plugin list --marketplace clip-hpc    # cbe@clip-hpc installed and enabled
 ```
 
-Check that the six CBE skills are available in a session. Check the effective
+Check that the seven CBE skills are available in a session. Check the effective
 policy on a target host as well, including any workspace or MDM layers.
 
 ## Alternative: admin skill directories
