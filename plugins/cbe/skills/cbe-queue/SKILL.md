@@ -31,11 +31,9 @@ Slurm recomputes the priority of every pending job every 5 minutes. It's a weigh
 |---|---|---|---|
 | Fair-share | 100,000 | Recent usage of the user's whole account branch compared to its share | Dominant |
 | Age | 20,000 | Time since the job became eligible; grows linearly, full after 7 days | Old jobs catch up |
-| QOS | 10,000 | The job's QOS tier (see below) | Shorter time limit ranks higher |
+| QOS | 10,000 | The job's QOS (see below) | `interactive` first, then `rapid`/`short`, `medium`, `long` |
 | Job size | 1,000 | Size of the request | Negligible |
 | Partition | 500 | Same for `c`, `g`, `m` | No effect |
-
-The public docs of 2026-10-16 still list a QOS weight of 500 and only the QOS `normal`. Trust `sprio -w` and the job's `QOS` column.
 
 Each partition is its own queue: a `g` job doesn't compete with a `c` job. Preemption is off: a running job is never stopped for a higher-priority one.
 
@@ -51,13 +49,13 @@ Accounts form a tree: holding (`vbc`, `oeaw`, ...) → institute (`vbc_imba`, `v
 
 ### 3. QOS tiers
 
-If the job's QOS is not `normal`, the tier is set from the time limit (the user doesn't pass `--qos`). Read the tiers with:
+Each partition has its own QOS levels. Jobs without `--qos` get `<p>_short`; users choose `--qos=rapid`, `medium`, `long`, or `interactive` themselves, and a submit hook adds the partition prefix. Read the tiers with:
 
 ```bash
 sacctmgr -P show qos format=Name,Priority,MaxWall,MaxTRESPerUser%60,GrpTRES%60
 ```
 
-On 2026-10-22: `<p>_rapid` and `<p>_short` (up to 8 h) have QOS priority 1000, `<p>_medium` (up to 2 days) 500, and `<p>_long` (up to 14 days) 100. Longer tiers also cap how much one user, and the whole tier, may run at once. A job pending with a `QOSMax*PerUser` reason is waiting for the user's *own* jobs to finish, not for priority. A `QOSGrp*` reason means the tier is full for everyone.
+On 2026-10-22: `interactive` (up to 12 h, small per-user caps) has QOS priority 1500, `<p>_rapid` (up to 1 h) and `<p>_short` (up to 8 h) 1000, `<p>_medium` (up to 2 days) 500, and `<p>_long` (up to 14 days) 100. Longer tiers also cap how much one user, and the whole tier, may run at once. A job pending with a `QOSMax*PerUser` reason is waiting for the user's *own* jobs to finish, not for priority. A `QOSGrp*` reason means the tier is full for everyone.
 
 ### 4. Scheduling: priority order, then backfill
 
@@ -126,7 +124,7 @@ Go through these in order and stop at the first that explains most of the wait:
 1. **Not waiting for priority at all:** reasons such as `ReqNodeNotAvail`, `Dependency`, `JobHeld*`, `BeginTime`, `QOSMax*`, `QOSGrp*`, `Assoc*`. Explain the reason and what ends it.
 2. **Fair-share:** in the chain, find the highest level with LevelFS below 1. That level explains the factor: the institute, the lab, or the user. Say which, and that it decays by half every 7 days.
 3. **Request shape:** whole-node CPU requests, large memory, full B200 GPUs, or the `m` partition need a node to drain. Compare with what is pending ahead and what `showpartitions` reports free.
-4. **Time limit:** long limits miss backfill gaps and fall into lower QOS tiers. Compare the limit with `Elapsed` of similar finished jobs.
+4. **Time limit and QOS:** long limits miss backfill gaps, and the `medium` and `long` QOS rank lower and have tighter caps. Compare the limit with `Elapsed` of similar finished jobs.
 5. **Just a busy partition:** many higher-priority pending jobs ahead and few free cores. Age will lift the job over the following days.
 
 For "someone else's job started before mine", compare the two jobs on each point above: partition and request size, time limit and QOS, `Flags` (backfill?), eligible time (age), and the FairShare component from `sprio -l -j <id>` while pending, or `Priority` from `sacct` after the start.

@@ -23,8 +23,8 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 ## Rules
 
 - No computation on login nodes. Use them to edit, inspect, submit, and review. Run CPU-, memory-, or time-heavy work, containers, and large transfers through Slurm.
-- Always set `--time`. No partition time limits exist yet, and the backfill scheduler starts jobs with short, accurate limits sooner.
-- Don't pass `--qos`; only `normal` exists. Don't use `--reservation=interactive` or `gpu_interactive`; they don't exist yet and Slurm rejects them.
+- Always set `--time`, within the limit of the job's QOS (see QOS below). The backfill scheduler starts jobs with short, accurate limits sooner.
+- Choose the shortest QOS that fits the run time. Without `--qos`, jobs get `short` (8 hours). Use `--qos=interactive` only for interactive sessions, not for batch work.
 - Test with a small input, then size the real request with `jobeff <job-id>` or `sacct ... MaxRSS`.
 - Don't cancel and resubmit an unchanged pending job. Read the reason first (see Diagnose).
 - Load modules inside job scripts, never in `.bashrc`.
@@ -39,17 +39,34 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 
 | Partition | Nodes | Cores per node | Memory per node | Default memory per CPU | GPUs |
 |---|---|---|---|---|---|
-| `c` (default) | `cbe-c3-[1-18]` | 192 (AMD Zen 5, no SMT) | about 754 GB | 3,800 MB | none |
+| `c` (default) | `cbe-c3-[1-12]` | 192 (AMD Zen 5, no SMT) | about 754 GB | 3,800 MB | none |
 | `g` | `cbe-g5-[1-8]` | 192 | about 1.5 TB | 7,600 MB | 8× B200 (4 full + 28 MIG slices per node) |
 | `m` | `cbe-m3-[1-4]` | 160 (4× Intel Xeon Platinum 8460H) | about 7.9 TB | 3,800 MB | none |
 
 - Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Always request the memory explicitly, for example `--mem=2T`; the default per CPU is the same as on `c`.
 - No node uses SMT, so one Slurm CPU is one physical core.
+- The partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`) is open only to the grid experiment groups; `sinfo` doesn't show it to other users.
 - Array indices: 0–3000.
 - Per-job temporary storage, both deleted when the job ends:
   - `/tmp` (`$TMPDIR`) and `/var/tmp`: private, on the fast BeeGFS filesystem behind `/scratch`. The best place for a job's temporary files.
   - `/dev/shm`: private, in the job's memory. Very fast, but everything written there counts against `--mem`. Use it for many small temporary files or small caches.
 - Maintenance: one day per month, always announced. Jobs whose `--time` would run into it stay pending with `ReqNodeNotAvail`.
+
+## QOS
+
+Partitions have no time limit; the QOS sets the maximum run time, per-user and total resource caps, and part of the priority. Each partition has its own QOS (`c_short`, `g_long`, ...). Write the level only, for example `--qos=medium`; a submit hook adds the partition prefix.
+
+| QOS | Maximum run time | Priority | Use for |
+|---|---|---|---|
+| `rapid` | 1 hour | high | Tests and very short jobs |
+| `short` (default) | 8 hours | high | Most jobs |
+| `medium` | 2 days | medium | Jobs that can't finish in 8 hours |
+| `long` | 14 days | low | Jobs that can't be split or checkpointed |
+| `interactive` | 12 hours | highest | `salloc` sessions and OpenOnDemand; per user at most 5 jobs, 48 CPUs, 2 GPUs (full and MIG together), and 1,000 GB memory |
+
+- Caps on running jobs: `c_short` 1,152 CPUs per user; `c_medium` 460 CPUs per user and 1,152 in total; `c_long` 230 per user and 460 in total; `g_medium` 16 full B200s, 112 MIG slices, and 768 CPUs; `g_long` 8 full B200s, 56 MIG slices, and 384 CPUs (for `g`, per user and in total alike). `rapid`, the other `short` levels, and all `m` levels have no caps.
+- A job over its QOS time limit is rejected at submission. Jobs over a cap wait with `QOSMax*PerUser` (the user's own jobs) or `QOSGrp*` (the tier is full).
+- Read live values with `sacctmgr show qos format=Name,Priority,MaxWall,MaxTRESPU%60,GrpTRES%60` and `showuserlimits`.
 
 ## Batch template
 
@@ -69,7 +86,9 @@ srun <application> <input-file>
 
 Create `logs/` before submitting. For arrays, use `--array=0-N%K` and `--output=logs/%x-%A_%a.out`.
 
-Interactive: `salloc --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `salloc` without a command opens a shell directly on the compute node; `exit` ends the allocation.
+Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `salloc` without a command opens a shell directly on the compute node; `exit` ends the allocation.
+
+On weekdays from 09:00 to 17:00, the reservations `interactive` (96 cores on `cbe-c3-2`) and `interactive_gpu` (24 cores and 7 MIG slices on `cbe-g5-8`) keep resources free for jobs with `--qos=interactive`. Add `--reservation=interactive`, or `--partition=g --reservation=interactive_gpu --gres=gpu:nvidia_b200_1g.23gb:1`. Outside these hours, or when the reservation is full, use `--qos=interactive` alone.
 
 ## GPUs (partition `g`)
 
@@ -106,7 +125,7 @@ Interactive: `salloc --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `
 
 ## Diagnose
 
-- Pending: run `squeue --me --start` and `scontrol show job <id> | grep -E "JobState|Reason"`. Common reasons: `Priority`/`Resources` mean wait or shrink the request; `ReqNodeNotAvail` usually means maintenance; `DependencyNeverSatisfied` means cancel and fix; `JobHeldAdmin` means contact support.
+- Pending: run `squeue --me --start` and `scontrol show job <id> | grep -E "JobState|Reason"`. Common reasons: `Priority`/`Resources` mean wait or shrink the request; `ReqNodeNotAvail` usually means maintenance; `QOSMax*`/`QOSGrp*` mean a QOS cap (see QOS); `DependencyNeverSatisfied` means cancel and fix; `JobHeldAdmin` means contact support.
 - Priority: fair share with a 7-day half-life plus age. Inspect with `sprio -l -j <id>` and `sshare -l`. There's no preemption. To explain why a job waits or why others started first, use the `cbe-queue` skill.
 - Site tools (on `PATH`): `jobinfo <id>`, `jobeff --me`, `showuserlimits`, `showpartitions -g`, `pestat -p c`, `showjobreasons`, `showuserjobs`.
 - Failed job: use the `cbe-triage` skill.
