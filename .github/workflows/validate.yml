@@ -48,7 +48,8 @@ jobs:
           from pathlib import Path
           from zipfile import ZipFile
           archives = sorted(Path("dist").glob("*.zip"))
-          assert len(archives) == 6, "Expected six skill archives"
+          skills = sorted(p.parent.name for p in Path("plugins/cbe/skills").glob("*/SKILL.md"))
+          assert [p.stem for p in archives] == skills, "Expected one archive per skill"
           for path in archives:
               with ZipFile(path) as archive:
                   archive.getinfo(path.stem + "/SKILL.md")
