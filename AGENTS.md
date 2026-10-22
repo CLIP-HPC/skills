@@ -47,11 +47,36 @@ CLI versions listed in the README. It uses temporary client state and requires
 no credentials. For skill workflow changes, review `tests/scenarios.md`; do not
 submit real cluster jobs merely to validate packaging.
 
-Bump the version in the portable manifest when preparing a release and regenerate
-the adapters. Keep one shared skill tree. Do not introduce per-host copies or
+Keep one shared skill tree. Do not introduce per-host copies or
 consumer-side build hooks.
 Generate identical plugin membership and sources for every host from the common
 catalog. Host adapters may change metadata format, not which plugins are available.
+
+## Versions and releases
+
+This is a plugin and marketplace repository: clients only pick up a change after
+the version in `plugins/cbe/plugin.json` changes. Every user-facing change
+therefore needs a version bump, so use versions sparingly:
+
+- Collect related changes on one feature branch. Bump the version once, in the
+  last commit before the pull request, not per commit. Regenerate the adapters
+  after the bump.
+- Open the pull request when the branch is ready to release, not for each
+  intermediate step.
+- After merging, release: tag the merge commit on `main` as `v<version>`, push
+  the tag, and create a GitHub release with notes from the commits since the
+  previous tag (`gh release create v<version> --generate-notes`).
+- Use semantic versions: patch for fixes and corrected facts, minor for new
+  skills or workflows, major for incompatible changes to installation or
+  plugin layout.
+
+Write commit messages and pull request titles as
+[Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>):
+<summary>`, with types such as `feat`, `fix`, `docs`, `ci`, `test`, `refactor`,
+and `chore`, and the skill or area as the scope, for example
+`fix(cbe-queue): show the full fair-share chain`. Put the ticket ID, such as
+`COPS-239`, in the body as `Refs: COPS-239`. Use `chore(release): <version>`
+for the version bump.
 
 This repository is public and supports regular CBE / CLIP users. Keep internal
 staff instructions out of the public skills and documentation. Private repository
