@@ -145,7 +145,7 @@ Stop for:
 - SSH certificate or host key problems;
 - `JobHeldAdmin`.
 
-Support: the CBE.next MS Teams channel for operational questions, or the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6). ÖAW users can also write to contact@clip.science. Include the job ID, commands, exact error, `module list` output, and affected paths. Never include secrets or sensitive data.
+Support: the CBE.next MS Teams channel for operational questions, or the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6). ÖAW users can also write to contact@clip.science. To write and open a ticket, use the `cbe-ticket` skill.
 
 ## Details (fetch as Markdown)
 
