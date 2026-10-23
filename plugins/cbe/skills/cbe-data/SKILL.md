@@ -9,7 +9,7 @@ metadata:
 
 # Data and filesystems on CBE.next
 
-Facts below reflect the docs as of 2026-10-19. Items marked *not available yet* may have changed.
+Facts below reflect the docs as of 2026-10-19 and the cluster tools as of 2026-10-23. Items marked *not available yet* may have changed.
 
 ## Hard rules
 
@@ -27,6 +27,8 @@ Facts below reflect the docs as of 2026-10-19. Items marked *not available yet* 
 - Never put passwords, tokens, keys, or SAS URLs in job scripts or logs.
 
 ## Filesystems
+
+`myquota` shows your usage and quota on `/groups`, `/scratch`, `/clustertmp`, and `$HOME` in one report, including file counts and filesystem totals. Run it before large writes or transfers, and when a job reports `Disk quota exceeded`.
 
 | Path | What it is | Use for | Lifetime and protection | Usage check |
 |---|---|---|---|---|
@@ -96,7 +98,8 @@ ls /users/.snapshot
 
 | From or to | Method | Notes |
 |---|---|---|
-| Between filesystems on CBE.next | `rsync --archive --partial` or `cp` | Run large copies as a batch job, not on the login node. |
+| Between filesystems on CBE.next, large folders or many files | `stage SOURCE DESTINATION` | Submits a parallel copy (mpiFileUtils) as a batch job; the result is `DESTINATION/<name of SOURCE>`. `-c` verifies the copy, `-u` updates an existing copy without deleting anything, `-A`, `-T`, `-n` set account, time, and nodes; `stage -h` lists all options. |
+| Between filesystems on CBE.next, small data | `rsync --archive --partial` or `cp` | Run larger copies as a batch job, not on the login node. |
 | Campus workstation | No transfer needed | `/groups` and `/clustertmp` are the same shares as `\\storage.vbc.ac.at\...` and `smb://storage.vbc.ac.at/...`. |
 | Laptop or other computer | `rsync` or `scp` through `cbe.next` | Watch trailing slashes; `rsync --partial` resumes. |
 | Other institutes, large data | Globus | No Globus client on CBE.next. The collection name isn't published yet; ask the HPC Servicedesk. |
@@ -110,7 +113,7 @@ Before a large transfer, confirm the source, destination, and free quota. After 
 ### Azure archive with AzCopy
 
 - Each group has its own Azure archive blob; IT provides the URL.
-- AzCopy isn't a module. Install the static binary into `~/bin`, or run it from a container.
+- `azcopy` is on every user's `PATH`; no module or own installation is needed.
 - Authentication is interactive (a device code entered in a browser) and is needed for every AzCopy command. So the transfer runs in an interactive `srun` job inside a `tmux` session, and the user must complete the sign-in. You can prepare the commands but can't sign in for them.
 - Use `azcopy sync <folder> <blob-url> --put-md5`. Check `Final Job Status` and resume failures with `azcopy jobs resume <id>`.
 - About 1 TB in 30 minutes was measured with mid-sized files.

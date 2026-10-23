@@ -70,11 +70,11 @@ Check whether similar jobs from the same user or group failed at the same time a
 
 | Suspect | Evidence to look for |
 |---|---|
-| Quota exceeded | `Disk quota exceeded` or `No space left on device` in logs; `quota -s`; group usage at https://apps.vbc.ac.at/quotas/ |
+| Quota exceeded | `Disk quota exceeded` or `No space left on device` in logs; `myquota` (all filesystems at once) |
 | `/dev/shm` use | Out-of-memory although the program's own memory looks fine: files in `/dev/shm` count against `--mem` |
 | Scratch deletion | Missing inputs on `/scratch` older than 28 days, or missing staged data in `/clustertmp` |
 | Permissions | `Permission denied` on `/groups`. Remember that `chmod` is ignored; access comes from ACLs, so it isn't fixable by the agent |
-| Node failure | `NODE_FAIL`; the same node in several failing jobs; `sinfo -R` lists down or drained nodes with reasons; `pestat -p <partition>` |
+| Node failure | `NODE_FAIL`; the same node in several failing jobs; `sinfo -R` lists down or drained nodes with reasons; `pestat -p <partition>`; `showevents -w <node> -t 3days` for the node's state changes around the failure |
 | Network or storage I/O | Stale file handle, I/O errors, timeouts, MPI/UCX/NCCL connection errors; whether several jobs failed together |
 | Maintenance | Job ended or stayed pending around an announced maintenance; CBE.next change notes |
 | GPU not visible | `CUDA_VISIBLE_DEVICES` empty inside a container (`--cleanenv` on GPU nodes), or an untyped `--gres` gave the wrong GPU type |
@@ -86,6 +86,8 @@ A single symptom is not proof. For example, `Killed` can be out of memory or an 
 ## 4a. Watch a running job on its node
 
 For a job that is still running (hanging, slow, or using unexpected resources), observe it on the compute node. You can only SSH to nodes where you have a running job.
+
+**First look, from the login node:** `psjob <job-id>` lists the job's processes on its nodes, which is often enough to see a stuck or idle job without connecting.
 
 **Find the node:** `squeue -j <job-id> -o "%N"`. For a multi-node job, `scontrol show hostnames <nodelist>` lists each node.
 

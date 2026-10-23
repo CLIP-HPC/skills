@@ -9,7 +9,7 @@ metadata:
 
 # Software on CBE.next
 
-Facts below reflect the docs as of 2026-10-19. Prefer what the cluster reports (`module spider`, directory listings) over this file.
+Facts below reflect the docs as of 2026-10-19 and the tools in `/software/system/utils/bin` as of 2026-10-23. Prefer what the cluster reports (`module spider`, directory listings) over this file.
 
 ## Where software comes from
 
@@ -26,13 +26,29 @@ Facts below reflect the docs as of 2026-10-19. Prefer what the cluster reports (
 | Curated reference data | `/resources` | Genomes and indexes |
 | Your own | containers you pull or build; `uv` or conda environments; binaries in `$HOME` or `/groups` | Anything not provided above |
 
-Installed tools worth knowing: `uv`, conda and mamba (Miniforge), Apptainer, and `rclone`.
+## Command-line tools on `PATH`
 
-Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module; an AzCopy module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
+`/software/system/utils/bin` is on every user's `PATH`, with no module needed. Run `ls /software/system/utils/bin` for the current set and `<tool> --version` for versions.
+
+| Purpose | Tools |
+|---|---|
+| Search files and code | `rg` (ripgrep), `fd` |
+| Git and GitHub | `gh`, `lazygit` |
+| Coding agents | `claude` (Claude Code), `codex` (Codex CLI), `herdr` (terminal workspace for agent sessions) |
+| Data transfer | `rclone`, `azcopy` (see the `cbe-data` skill) |
+| Environments | `uv`, `conda` and `mamba` (Miniforge), `apptainer` |
+| Interactive, for the user's terminal | `btop` and `btm` (process monitors), `fzf`, `zoxide`, `yazi` (file manager) |
+| Cluster and storage helpers | `jobinfo`, `jobeff`, `myquota`, `stage`, and others (see the `cbe-next` skill) |
+
+- Use these instead of installing your own copy into `$HOME` or a conda environment.
+- Prefer `rg` and `fd` over `grep -r` and `find`, but give them a narrow starting directory. Never sweep all of `/groups`, `/scratch`, or `/cvmfs`: that loads shared storage for everyone.
+- `btop`, `btm`, `lazygit`, `yazi`, and `fzf` need an interactive terminal. Suggest them to the user; don't run them from a non-interactive agent shell.
+
+Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
 
 ## Search in this order
 
-Stop at the first source that has a suitable version.
+Stop at the first source that has a suitable version. For a general command-line tool, first check whether it's already on `PATH`: `command -v <name>`.
 
 1. **Modules.**
    - `module spider <name>` searches the whole hierarchy, case-insensitively, and finds partial names.
