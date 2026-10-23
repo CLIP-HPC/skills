@@ -1,9 +1,9 @@
 ---
 name: cbe-triage
-description: "Diagnose failed, crashed, killed, cancelled, timed-out, out-of-memory, hanging, or incorrect Slurm jobs on CBE.next using job logs and accounting data. Check system-side causes such as exceeded quota, scratch deletion, node failure, network or storage errors, and maintenance; compare with successful runs, reproduce minimally, and draft an HPC Servicedesk ticket when needed. Use cbe-tuning for otherwise working jobs that need better performance."
+description: "Diagnose failed, crashed, killed, cancelled, timed-out, out-of-memory, hanging, or incorrect Slurm jobs on CBE.next using job logs and accounting data. Check system-side causes such as exceeded quota, scratch deletion, node failure, network or storage errors, and maintenance; compare with successful runs, reproduce minimally, and hand over to cbe-ticket when it needs support. Use cbe-tuning for otherwise working jobs that need better performance."
 metadata:
   display-name: "CBE job triage"
-  short-description: "Diagnose failed jobs and prepare support requests"
+  short-description: "Diagnose failed jobs and find their cause"
   example-task: "diagnose this failed job from its script and logs."
 ---
 
@@ -18,7 +18,7 @@ This skill is for diagnosing your own jobs.
 - **Reproduce minimally.** Reproduce with the smallest input and the smallest resources that still show the problem. Never resubmit the full production job to "see if it happens again".
 - **Read-only first.** Diagnose without changing data. Don't delete or overwrite outputs, inputs, or anything in `/groups` (see the `cbe-data` skill).
 - **Query Slurm sparingly.** Every `squeue`, `sacct`, `sinfo`, `scontrol`, or site-tool call loads the shared scheduler, and Slurm rate-limits heavy users. No `watch squeue` or tight polling loops: check every few minutes at most, query all jobs at once (`squeue --me`), and keep `sacct` time windows narrow.
-- **Escalate when needed.** If the cause stays unclear, or fixing it needs action on the cluster, prepare an HPC Servicedesk ticket.
+- **Escalate when needed.** If the cause stays unclear, or fixing it needs action on the cluster, propose a ticket with the `cbe-ticket` skill.
 
 ## 1. Collect the facts
 
@@ -160,47 +160,13 @@ If you found the cause:
 - propose the fix as a diff to the script;
 - validate the fix with the minimal example before the user reruns production.
 
-Escalate to the HPC Servicedesk when:
+Propose a support ticket when:
 
 - the cause is still unclear after the steps above;
 - it is on the system side (node, network, or storage faults; quota changes; permissions; striping);
-- it needs an admin (`JobHeldAdmin`, a restore from backup, missing software).
+- it needs an admin (`JobHeldAdmin`, a restore from backup).
 
-### Ticket
-
-Draft the ticket and show it to the user. Create it only after the user approves the text.
-
-```text
-Summary: <one line: what fails, where, since when>
-
-Job IDs: <ids>        Time: <date and time range>        Nodes: <NodeList>
-Partition/resources: <partition, CPUs, memory, GPUs, time>
-
-What happened:
-<expected vs. actual; exact error lines from the logs; sacct State and ExitCode>
-
-Initial diagnosis:
-<hypotheses with the evidence for and against each; what has been ruled out>
-
-Steps taken:
-<numbered list of checks and their results, including comparisons with previous good runs>
-
-Minimal reproducer:
-<script, input description, the command to run, and the observed result>
-
-Environment:
-<module list, container image and digest, relevant paths, no file contents>
-```
-
-- Never include passwords, keys, certificates, tokens, or confidential file contents. Point to paths instead.
-- Create the ticket with the Atlassian connector (`createJiraIssue`) on `vbc.atlassian.net`:
-  - project `ISD` (IT Service Desk);
-  - issue type `Support`;
-  - request type **CLIP Support** (ID `30`) in the field `customfield_10010`.
-
-  Use **CLIP Software** (ID `31`) for a software installation request, and **CLIP Account** (ID `29`) for account or access problems.
-- If the connector isn't available, or the user has no permission to create issues through the API, give the user the finished text to paste into the portal form for that request type: https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/30 (CLIP Support), `/create/31` (CLIP Software), or `/create/29` (CLIP Account).
-- ÖAW users can also write to contact@clip.science. For quick operational questions, there's the CBE.next MS Teams channel.
+Write and open it with the `cbe-ticket` skill, which lists the facts to include. Missing software is a request through the `cbe-software` skill.
 
 ## Details (fetch as Markdown)
 

@@ -1,7 +1,7 @@
 # CLIP-HPC agent skills
 
 Shared Agent Skills for CBE.next, the Vienna BioCenter HPC cluster, distributed
-as the `cbe` plugin in the `clip-hpc` marketplace. The same seven skill folders
+as the `cbe` plugin in the `clip-hpc` marketplace. The same eight skill folders
 work in Codex and Claude Code.
 
 The canonical manifest is [`plugins/cbe/plugin.json`](plugins/cbe/plugin.json),
@@ -24,7 +24,8 @@ Install the complete plugin: these skills refer to each other by name.
 | `cbe-data` | Choose filesystems, restore files, and move data on and off the cluster. |
 | `cbe-tuning` | Make jobs faster or request resources that match what they use. |
 | `cbe-queue` | Understand why a job waits: priority, fair share, backfill, and start order. |
-| `cbe-triage` | Find out why a job failed and draft a support ticket. |
+| `cbe-triage` | Find out why a job failed. |
+| `cbe-ticket` | Write and open a complete support ticket for CBE.next or OpenOnDemand. |
 | `cbe-migrate` | Port job scripts, data, and environments from legacy CBE before its 2026-12-18 shutdown. |
 
 The instructions follow the [CBE.next documentation](https://docs.vbc.ac.at/research-computing/cbe/).
@@ -130,7 +131,7 @@ and [Claude marketplace reference](https://code.claude.com/docs/en/plugins/marke
 
 ## Use standalone skills
 
-When a plugin install is unsuitable, link all seven folders into a host's skill
+When a plugin install is unsuitable, link all eight folders into a host's skill
 directory. The helper needs only Python 3.10+ and never replaces existing files.
 
 ```bash
@@ -146,14 +147,14 @@ python3 scripts/install-skills.py --destination ~/.claude/skills
 
 Choose either plugin installation or standalone links in a given host to avoid
 duplicate skills. Keep this checkout at its current path while links point to
-it. To remove a standalone installation, remove only the seven links the helper
+it. To remove a standalone installation, remove only the eight links the helper
 created. No other files need changing.
 
 For a host that accepts uploaded Agent Skills, the existing helper builds one
 archive per skill:
 
 ```bash
-scripts/package-skills.sh                 # all seven into dist/
+scripts/package-skills.sh                 # all eight into dist/
 scripts/package-skills.sh cbe-triage      # one skill
 ```
 
@@ -185,7 +186,7 @@ are locked in `uv.lock`; they are not runtime requirements for the skills.
 
    This validates the Claude marketplace and plugin manifests, then installs the
    plugin in both clients using isolated temporary state. The Codex package omits
-   the Claude manifest. It verifies all seven installed skills and their picker metadata.
+   the Claude manifest. It verifies all eight installed skills and their picker metadata.
    It does not call a model, submit cluster jobs, or change your installed plugins.
 5. When changing descriptions or workflow instructions, run the Claude Code eval
    suite in `plugins/cbe/evals/`. It calls a model on your own Claude account, so
@@ -197,8 +198,8 @@ are locked in `uv.lock`; they are not runtime requirements for the skills.
 
    Each case checks that the expected skill loads (reported, not scored) and that
    the answer has the expected substance, with and without the plugin; the
-   headline number is the difference. The last case checks that no CBE skill loads
-   for an unrelated prompt. Run the [manual behavior scenarios](tests/scenarios.md)
+   headline number is the difference. The `neg` cases check that no CBE skill loads
+   for unrelated prompts. Run the [manual behavior scenarios](tests/scenarios.md)
    in Codex, which has no equivalent runner. Commit generated outputs with their sources.
 
 CI checks schemas, names, relative resource links, metadata, generated-file drift,

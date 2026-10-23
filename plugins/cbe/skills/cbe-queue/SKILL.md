@@ -20,6 +20,7 @@ The most common misunderstanding: "I submitted many jobs, so I now have low prio
 - **Never cancel and resubmit** a pending job to "reset" it: it loses the age it has accumulated and starts again at the back. Don't change `--nice` or holds without asking.
 - **Other users' jobs:** compare priority components and requests, report counts, and don't name other users or speculate about their work. If the user names a specific job that started earlier, inspecting it is fine.
 - Explain, then hand over. Changing requests is the `cbe-tuning` skill. A failed job is `cbe-triage`.
+- **A long wait is not a support ticket.** Propose one with the `cbe-ticket` skill only when the evidence points to a scheduler fault: `ReqNodeNotAvail` without a reservation in the job's time window, `Resources` for hours while the needed nodes are idle and unreserved, repeated Slurm controller timeouts, or jobs stuck in `COMPLETING`.
 
 ## How CBE.next orders jobs
 
