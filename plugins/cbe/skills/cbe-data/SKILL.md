@@ -1,6 +1,6 @@
 ---
 name: cbe-data
-description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use before deleting, moving, renaming, or overwriting any file or directory under /groups (rm, mv, find -delete, rsync --delete, rclone sync, shell redirection onto an existing file), even for a quick cleanup, when the user names only a relative path and the working directory is under /groups, and when recovering something deleted by mistake. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources and /resources/ngs, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS."
+description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use before deleting, moving, renaming, or overwriting any file or directory under /groups (rm, mv, find -delete, rsync --delete, rclone sync, shell redirection onto an existing file), even for a quick cleanup, when the user names only a relative path and the working directory is under /groups, and when recovering something deleted by mistake. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS."
 metadata:
   display-name: "CBE data"
   short-description: "Store, stage, restore, and transfer cluster data"
@@ -39,7 +39,6 @@ Facts below reflect the docs as of 2026-10-19 and the cluster tools as of 2026-1
 | `/groups/<group>` | campus group storage, also reachable from workstations (`\\storage.vbc.ac.at\groups\<group>`) | permanent research data, shared input, retained results | persistent; hourly snapshots in `/groups/.snapshot`; backup kept 180 days; quota per group | `quota -s`, or https://apps.vbc.ac.at/quotas/ |
 | `/clustertmp` | campus exchange share (`\\storage.vbc.ac.at\clustertmp`), 250 TB | exchanging data with workstations or other groups; not job output | no backup; unmodified data deleted automatically after 28 days | — |
 | `/resources` | curated reference data, read-only | genomes and indexes | — | — |
-| `/resources/ngs/<group>/<request_id>/` | NGS archive (GMI groups): demultiplexed data from the NGS facility | reading archived sequencing data | read-only; fully backed up | access is granted per group by IT |
 | `/eos`, `/cvmfs`, `/programs` | EOS (HEP users), software and reference repositories, SBGrid | see the `cbe-software` skill for `/cvmfs` and `/programs` | — | — |
 
 ## Performance
@@ -138,5 +137,5 @@ Support: the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/por
 - https://docs.vbc.ac.at/research-computing/cbe/storage-and-data/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (rsync, rclone, Globus, grid tools)
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md
-- https://docs.vbc.ac.at/data-services/<page>/index.md, where `<page>` is one of `storage`, `storage-best-practices`, `storage-parallelization`, `storage-quotas`, `group-folder-structure`, `group-folder-permissions`, `azure-archive`, `use-azcopy-on-cbe`, `ngs-archive`, `aconet-filesender`.
+- https://docs.vbc.ac.at/data-services/<page>/index.md, where `<page>` is one of `storage`, `storage-best-practices`, `storage-parallelization`, `storage-quotas`, `group-folder-structure`, `group-folder-permissions`, `azure-archive`, `use-azcopy-on-cbe`, `aconet-filesender`.
 

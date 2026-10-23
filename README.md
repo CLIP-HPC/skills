@@ -219,5 +219,5 @@ what the public documentation states.
 
 The skills state facts from the CBE.next pages on docs.vbc.ac.at (source: the
 `newdocs` repository). Until the CBE.next release, the authoritative source is
-the `review/final-state` branch of `newdocs`, not `main` or the live site. When
+the `main` branch of `newdocs`, which has changes not yet on the live site. When
 those pages change, update the skills and bump the version.

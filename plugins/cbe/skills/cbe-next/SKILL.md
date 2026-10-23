@@ -169,4 +169,6 @@ Support: the CBE.next MS Teams channel for operational questions, or the HPC Ser
 
 ## Details (fetch as Markdown)
 
-https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of: `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `containers`, `python-and-conda`, `storage-and-data`, `transfer-data`, `openondemand-web-applications`, `bring-your-own-license`, `troubleshooting-and-support`, `change-notes`.
+https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of: `ssh-system-access`, `quick-start`, `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `containers`, `python-and-conda`, `storage-and-data`, `transfer-data`, `openondemand-web-applications`, `bring-your-own-license`, `troubleshooting-and-support`, `change-notes`.
+
+SSH problems in general: https://docs.vbc.ac.at/research-computing/ssh-troubleshooting/index.md.

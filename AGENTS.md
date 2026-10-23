@@ -84,5 +84,5 @@ This repository is public and supports regular CBE / CLIP users. Keep internal
 staff instructions out of the public skills and documentation. Private repository
 pointers belong only in technically necessary marketplace entries, labelled for
 internal staff and as unnecessary for regular use. Until the CBE.next release,
-the authoritative documentation source is `newdocs` branch `review/final-state`;
+the authoritative documentation source is `newdocs` branch `main`;
 see the README.
