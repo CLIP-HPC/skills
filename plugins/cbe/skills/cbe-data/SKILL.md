@@ -138,5 +138,5 @@ Support: the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/por
 - https://docs.vbc.ac.at/research-computing/cbe/storage-and-data/index.md
 - https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (rsync, rclone, Globus, grid tools)
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md
-- https://docs.vbc.ac.at/data-services/<page>/index.md, where `<page>` is one of `storage`, `storage-best-practices`, `storage-parallelization`, `storage-quotas`, `group-folder-structure`, `group-folder-permissions`, `azure-archive`, `use-azcopy-on-cbe`, `ngs-archive`, `aconet-filesender`.
+- https://docs.vbc.ac.at/data-services/<page>/index.md, where `<page>` is one of `storage`, `storage-best-practices`, `storage-parallelization`, `storage-quotas`, `group-folder-structure`, `group-folder-permissions`, `azure-archive`, `use-azcopy-on-cbe`, `aconet-filesender`.
 
