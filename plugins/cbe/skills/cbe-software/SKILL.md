@@ -118,6 +118,8 @@ Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay
 
 ## Python and conda
 
+For a project environment that should stay reproducible (tracked in git with `pyproject.toml` and `uv.lock`, or `environment.yml` and `conda-lock.yml`), and for repairing a grown or broken environment, use the `cbe-env` skill. The commands below are the quick, untracked form from the docs.
+
 ### uv
 
 - `uv` 0.11 is the tool for Python-only projects. Use `uv venv ~/venvs/<name>`, then `source ~/venvs/<name>/bin/activate`, then `uv pip install <pkgs>`. For one-off scripts, use `uv run --with <pkg> python script.py`.
