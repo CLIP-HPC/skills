@@ -28,7 +28,7 @@ class BundleTests(unittest.TestCase):
         generate(self.root)
 
     def test_valid_bundle_and_idempotent_generation(self):
-        self.assertEqual(validate(self.root), (1, 8))
+        self.assertEqual(validate(self.root), (1, 9))
         self.assertEqual(generate(self.root), [])
 
     def test_version_changes_reach_both_hosts_and_check_never_writes(self):
@@ -43,7 +43,7 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(target.read_bytes(), before)
         generate(self.root)
         self.assertEqual(json.loads(target.read_text())["version"], "1.2.3")
-        self.assertEqual(validate(self.root), (1, 8))
+        self.assertEqual(validate(self.root), (1, 9))
 
     def test_missing_or_modified_generated_files_fail_validation(self):
         for target in generated_files(self.root):
@@ -111,7 +111,7 @@ class BundleTests(unittest.TestCase):
     def test_install_all_skills_and_repeat_without_changes(self):
         source = self.root / "plugins/cbe/skills"
         destination = self.root.parent / "destination with spaces"
-        self.assertEqual(installer.install(source, destination), 8)
+        self.assertEqual(installer.install(source, destination), 9)
         for skill in source.iterdir():
             self.assertTrue((destination / skill.name).is_symlink())
             self.assertEqual((destination / skill.name).resolve(), skill.resolve())

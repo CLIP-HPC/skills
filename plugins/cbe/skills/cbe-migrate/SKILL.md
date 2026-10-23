@@ -118,7 +118,7 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | MATLAB module | No module. Bring your own license: the user installs MATLAB or uses a container, and `MLM_LICENSE_FILE` goes in the job script. |
 | private copies of reference genomes or indexes | Check `/resources` and `/cvmfs/data.galaxyproject.org` first. |
 
-**Conda environments:** don't copy environment directories or a personal Anaconda or Miniconda installation. On legacy CBE, export each environment with `conda env export -n <name> --from-history > environment.yml`. Replace a `defaults` channel with `conda-forge` (Anaconda license terms), copy the file, and on CBE.next run `conda env create -n <name> -f environment.yml`. Use `conda`, not `mamba -n`. Create environments in `$HOME` or `/groups`, never on `/scratch`. For pip-only environments, `pip freeze` and `uv` work too.
+**Conda environments:** don't copy environment directories or a personal Anaconda or Miniconda installation. On legacy CBE, export each environment with `conda env export -n <name> --from-history > environment.yml`. Replace a `defaults` channel with `conda-forge` (Anaconda license terms), copy the file, and on CBE.next run `conda env create -n <name> -f environment.yml`. Use `conda`, not `mamba -n`. Create environments in `$HOME` or `/groups`, never on `/scratch`. For pip-only environments, `pip freeze` and `uv` work too. To keep the new environment reproducible, track it in git with the `cbe-env` skill.
 
 Record the old and new module names and versions for each workflow, so the user can compare results.
 

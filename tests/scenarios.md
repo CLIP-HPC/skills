@@ -15,8 +15,9 @@ scripts and logs rather than connecting to a production cluster for the check.
 | “My job has been pending for two days with reason `Priority`. Should I open a ticket?” | Select `cbe-queue`; explain the wait and say that it isn't a reason for a ticket unless the evidence points to a scheduler fault. |
 | “Where should this CBE.next job store intermediates and retained results?” | Select `cbe-data`; distinguish temporary scratch from retained group data and preserve the documented storage rules. |
 | “How do I find and load this tool on CBE.next?” | Select `cbe-software`; begin with the documented software sources and environment checks. |
+| “Set up a reproducible conda environment for this CBE.next project.” | Select `cbe-env`; check the user's dotfiles and quota, write a tracked `environment.yml` with conda-forge and Bioconda, create it by path, and commit a `conda-lock.yml`. No `conda init`, `defaults` channel, or `/scratch`. |
 | “Explain an ordinary local Python function.” | Do not activate an unrelated CBE skill. |
 
-Also select each of the eight skills explicitly in the host's picker and check
+Also select each of the nine skills explicitly in the host's picker and check
 that the expected instructions load. If a specialist skill references a sibling,
 confirm that the sibling is available in the installed bundle.
