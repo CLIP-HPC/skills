@@ -9,7 +9,7 @@ metadata:
 
 # CBE.next
 
-Facts below reflect the CBE.next docs as of 2026-10-19. Values marked *not configured yet* may have changed; prefer what the cluster reports (`sinfo`, `showuserlimits`, `module spider`).
+Facts below reflect the CBE.next docs as of 2026-10-19 and the site tools as of 2026-10-23. Values marked *not configured yet* may have changed; prefer what the cluster reports (`sinfo`, `showuserlimits`, `module spider`).
 
 Legacy CBE is a different system that shuts down on 2026-12-18. You can recognise it by the hostnames `cbe.vbc.ac.at`, `clip-login-0/1.cbe.vbc.ac.at`, and `clip-*` compute nodes, and by the `/scratch-cbe` path. Don't apply its instructions here. Watch out for `/scratch`: on legacy CBE it was the 30-day exchange area that is now `/clustertmp`, while on CBE.next `/scratch` is the job scratch (`$SCRATCHDIR`).
 
@@ -130,9 +130,29 @@ Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2
 
 - Pending: run `squeue --me --start` and `scontrol show job <id> | grep -E "JobState|Reason"`. Common reasons: `Priority`/`Resources` mean wait or shrink the request; `ReqNodeNotAvail` usually means maintenance; `QOSMax*`/`QOSGrp*` mean a QOS cap (see QOS); `DependencyNeverSatisfied` means cancel and fix; `JobHeldAdmin` means contact support.
 - Priority: fair share with a 7-day half-life plus age. Inspect with `sprio -l -j <id>` and `sshare -l`. There's no preemption. To explain why a job waits or why others started first, use the `cbe-queue` skill.
-- Site tools (on `PATH`): `jobinfo <id>`, `jobeff --me`, `showuserlimits`, `showpartitions -g`, `pestat -p c`, `showjobreasons`, `showuserjobs`.
 - Failed job: use the `cbe-triage` skill.
 - Slow job, or sizing and optimising resource requests: use the `cbe-tuning` skill.
+
+## Site tools
+
+Helpers in `/software/system/utils/bin`, on every user's `PATH`. Prefer them over long `sacct` or `squeue` pipelines; `<tool> -h` shows the options. If one fails, fall back to `sacct`, `squeue`, `sinfo`, and `scontrol`.
+
+| Tool | Shows |
+|---|---|
+| `jobinfo <id>` | one job, running or finished: combined `sacct`, `sstat`, and `squeue` |
+| `jobeff <id>`, `jobeff --me` | CPU and memory efficiency of one job or your recent jobs |
+| `showjob <id>` | one job's details |
+| `showuserjobs [-u user] [-a account] [-p partition]` | jobs and usage per user or account |
+| `psjob <id>` | processes and GPU use of a running job on its nodes |
+| `showjobreasons` | pending jobs grouped by user and reason |
+| `showuserlimits` | your effective Slurm limits |
+| `showpartitions -g`, `pestat -p <partition>` | free and used nodes, cores, and GPUs per partition; state, load, and memory per node |
+| `shownode <node>`, `showevents -w <node>` | one node's state and jobs; its recent state changes (default: last day) |
+| `myquota` | your storage usage and quotas (see the `cbe-data` skill) |
+| `stage SOURCE DEST` | parallel copy of a large folder as a batch job (see the `cbe-data` skill) |
+| `user-state.sh [--json]` | your sessions, processes, and resource use on this login node, and your jobs per partition |
+
+General command-line tools in the same directory (`rg`, `fd`, `gh`, `claude`, `codex`, and others) are covered by the `cbe-software` skill.
 
 ## When to stop and hand back to the user
 
