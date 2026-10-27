@@ -1,8 +1,8 @@
 ---
-name: cbe-env
-description: "Set up, repair, and maintain reproducible Python and conda environments on CBE.next with uv, conda, or mamba (global Miniforge): a project in a git repository whose dependencies are tracked in pyproject.toml and uv.lock, or environment.yml and conda-lock.yml, then built, used in Slurm jobs and Jupyter kernels, updated, and rebuilt from those files. Use for creating a venv or conda environment, environment.yml, requirements.txt, pip installs, conda init, ~/.conda filling the $HOME quota, broken, unsolvable, or drifting environments, ModuleNotFoundError only in jobs, ~/.local site-packages leaking in, and turning an existing environment into tracked files. Use cbe-software to find whether a tool already exists as a module or container, and cbe-migrate for moving environments from legacy CBE."
+name: cbe-python
+description: "Set up, repair, and maintain reproducible Python and conda environments on CBE.next with uv, conda, or mamba (global Miniforge), including conda environments for R and Bioconda tools: a project in a git repository whose dependencies are tracked in pyproject.toml and uv.lock, or environment.yml and conda-lock.yml, then built, used in Slurm jobs and Jupyter kernels, updated, and rebuilt from those files. Use for creating a venv or conda environment, environment.yml, requirements.txt, pip installs, conda init, ~/.conda filling the $HOME quota, broken, unsolvable, or drifting environments, ModuleNotFoundError only in jobs, ~/.local site-packages leaking in, and turning an existing environment into tracked files. Use cbe-software to find whether a tool already exists as a module or container, and cbe-migrate for moving environments from legacy CBE."
 metadata:
-  display-name: "CBE environments"
+  display-name: "CBE Python and conda"
   short-description: "Reproducible uv and conda environments in git"
   example-task: "set up a tracked conda environment for this analysis project."
 ---
