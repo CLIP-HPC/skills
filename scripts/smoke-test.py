@@ -18,12 +18,17 @@ def run(command, environment, cwd):
     return result.stdout
 
 
+def local_plugins():
+    catalog = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
+    return [entry["name"] for entry in catalog["plugins"] if isinstance(entry["source"], str)]
+
+
 def verify_skills(cache, source):
-    installed = sorted(cache.glob("clip-hpc/cbe/*/skills/*/SKILL.md"))
+    installed = sorted(cache.glob(f"clip-hpc/{source.name}/*/skills/*/SKILL.md"))
     expected = sorted((source / "skills").glob("*/SKILL.md"))
     if sorted(path.parent.name for path in installed) != [path.parent.name for path in expected]:
         raise RuntimeError(f"Incomplete installed skill bundle in {cache}")
-    for manifest in cache.glob("clip-hpc/cbe/*/plugin.json"):
+    for manifest in cache.glob(f"clip-hpc/{source.name}/*/plugin.json"):
         if (manifest.parent / "AGENTS.md").exists():
             raise RuntimeError("Repository maintenance instructions leaked into the installed plugin")
     for path in installed:
@@ -35,6 +40,7 @@ def verify_skills(cache, source):
 
 
 def main():
+    plugins = local_plugins()
     for executable in ("codex", "claude"):
         if not shutil.which(executable):
             raise RuntimeError(f"Install {executable} before running the CLI smoke test")
@@ -52,30 +58,35 @@ def main():
 
         # Check the generated Claude manifests. Claude's validator does not
         # reject invalid SKILL.md frontmatter; scripts/validate.py covers that.
-        for folder in (ROOT, ROOT / "plugins/cbe", ROOT / "plugins/cbe/skills"):
-            run(["claude", "plugin", "validate", "--strict", str(folder)], environment, ROOT)
+        run(["claude", "plugin", "validate", "--strict", str(ROOT)], environment, ROOT)
+        for name in plugins:
+            for folder in (ROOT / "plugins" / name, ROOT / "plugins" / name / "skills"):
+                run(["claude", "plugin", "validate", "--strict", str(folder)], environment, ROOT)
         run(["claude", "plugin", "marketplace", "add", str(ROOT)], environment, ROOT)
-        run(["claude", "plugin", "install", "cbe@clip-hpc", "--scope", "user"], environment, ROOT)
-        count = verify_skills(state / "claude-state/plugins/cache", ROOT / "plugins/cbe")
-        print(f"Claude: validation passed; plugin installed with {count} skills and picker metadata.")
+        for name in plugins:
+            run(["claude", "plugin", "install", f"{name}@clip-hpc", "--scope", "user"], environment, ROOT)
+            count = verify_skills(state / "claude-state/plugins/cache", ROOT / "plugins" / name)
+            print(f"Claude: validation passed; {name} installed with {count} skills and picker metadata.")
 
         # Deliberately omit the Claude manifest to prove that Codex can install
         # the portable manifest rather than succeeding through legacy fallback.
         portable = state / "portable-marketplace"
-        plugin = portable / "plugins/cbe"
-        shutil.copytree(ROOT / "plugins/cbe", plugin,
-                        ignore=shutil.ignore_patterns(".claude-plugin"))
+        for name in plugins:
+            shutil.copytree(ROOT / "plugins" / name, portable / "plugins" / name,
+                            ignore=shutil.ignore_patterns(".claude-plugin"))
         catalog = portable / ".agents/plugins/marketplace.json"
         catalog.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / ".agents/plugins/marketplace.json", catalog)
         run(["codex", "plugin", "marketplace", "add", str(portable), "--json"], environment, portable)
-        run(["codex", "plugin", "add", "cbe@clip-hpc", "--json"], environment, portable)
+        for name in plugins:
+            run(["codex", "plugin", "add", f"{name}@clip-hpc", "--json"], environment, portable)
         listing = json.loads(run(["codex", "plugin", "list", "--json", "--marketplace", "clip-hpc"],
                                  environment, portable))
-        if not listing.get("installed"):
-            raise RuntimeError("Codex did not report the plugin as installed")
-        count = verify_skills(state / "codex-state/plugins/cache", plugin)
-        print(f"Codex: portable plugin installed with {count} skills and picker metadata.")
+        if len(listing.get("installed") or []) != len(plugins):
+            raise RuntimeError(f"Codex did not report all of {', '.join(plugins)} as installed")
+        for name in plugins:
+            count = verify_skills(state / "codex-state/plugins/cache", portable / "plugins" / name)
+            print(f"Codex: portable {name} installed with {count} skills and picker metadata.")
 
 
 if __name__ == "__main__":
