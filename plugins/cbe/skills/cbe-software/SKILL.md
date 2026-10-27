@@ -118,7 +118,7 @@ Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay
 
 ## Python and conda
 
-For a project environment that should stay reproducible (tracked in git with `pyproject.toml` and `uv.lock`, or `environment.yml` and `conda-lock.yml`), and for repairing a grown or broken environment, use the `cbe-env` skill. The commands below are the quick, untracked form from the docs.
+For a project environment that should stay reproducible (tracked in git with `pyproject.toml` and `uv.lock`, or `environment.yml` and `conda-lock.yml`), and for repairing a grown or broken environment, use the `cbe-python` skill. The commands below are the quick, untracked form from the docs.
 
 ### uv
 

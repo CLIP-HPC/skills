@@ -21,7 +21,7 @@ Install the complete plugin: these skills refer to each other by name.
 |---|---|
 | `cbe-next` | Connect, follow cluster rules, pick partitions and GPUs, and write batch scripts. Start here. |
 | `cbe-software` | Find, load, or install software: modules, containers, `uv`, conda, licensed software. |
-| `cbe-env` | Set up and maintain reproducible uv and conda environments tracked in git. |
+| `cbe-python` | Set up and maintain reproducible uv and conda environments tracked in git. |
 | `cbe-data` | Choose filesystems, restore files, and move data on and off the cluster. |
 | `cbe-tuning` | Make jobs faster or request resources that match what they use. |
 | `cbe-queue` | Understand why a job waits: priority, fair share, backfill, and start order. |

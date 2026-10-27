@@ -1,5 +1,5 @@
 ---
 type: tool_used
 tool: Skill
-input_match: cbe-env
+input_match: cbe-python
 ---
