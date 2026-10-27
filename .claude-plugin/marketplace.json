@@ -12,15 +12,6 @@
       "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
       "category": "Productivity",
       "source": "./plugins/cbe"
-    },
-    {
-      "name": "ops",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/CLIP-HPC/operator-skills.git"
-      },
-      "description": "Internal staff only. Requires access to the private repository. Not required for regular CBE / CLIP use.",
-      "category": "Productivity"
     }
   ]
 }
