@@ -13,19 +13,6 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       }
-    },
-    {
-      "name": "ops",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/CLIP-HPC/operator-skills.git"
-      },
-      "description": "Internal staff only. Requires access to the private repository. Not required for regular CBE / CLIP use.",
-      "category": "Productivity",
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      }
     }
   ]
 }

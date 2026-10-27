@@ -16,6 +16,10 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 
+EXTERNAL = {"name": "external", "category": "Productivity", "description": "External plugin.",
+            "source": {"source": "url", "url": "https://example.com/plugin.git"}}
+
+
 class BundleTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -95,7 +99,7 @@ class BundleTests(unittest.TestCase):
     def test_duplicate_remote_plugin_name_is_rejected(self):
         path = self.root / "marketplace.json"
         catalog = json.loads(path.read_text())
-        catalog["plugins"][1]["name"] = "cbe"
+        catalog["plugins"].append({**EXTERNAL, "name": "cbe"})
         path.write_text(json.dumps(catalog))
         with self.assertRaisesRegex(ValueError, "duplicate plugin name"):
             validate(self.root)
@@ -103,7 +107,8 @@ class BundleTests(unittest.TestCase):
     def test_remote_source_must_not_contain_credentials(self):
         path = self.root / "marketplace.json"
         catalog = json.loads(path.read_text())
-        catalog["plugins"][1]["source"]["url"] = "https://example:secret@example.com/plugin.git"
+        catalog["plugins"].append({**EXTERNAL, "source": {
+            "source": "url", "url": "https://example:secret@example.com/plugin.git"}})
         path.write_text(json.dumps(catalog))
         with self.assertRaisesRegex(ValueError, "without credentials"):
             validate(self.root)

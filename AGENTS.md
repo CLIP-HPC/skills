@@ -81,8 +81,8 @@ and `chore`, and the skill or area as the scope, for example
 for the version bump.
 
 This repository is public and supports regular CBE / CLIP users. Keep internal
-staff instructions out of the public skills and documentation. Private repository
-pointers belong only in technically necessary marketplace entries, labelled for
-internal staff and as unnecessary for regular use. Until the CBE.next release,
+staff instructions out of the public skills and documentation. Don't list
+internal plugins or point to private repositories here; staff plugins ship from
+their own internal marketplace. Until the CBE.next release,
 the authoritative documentation source is `newdocs` branch `main`;
 see the README.
