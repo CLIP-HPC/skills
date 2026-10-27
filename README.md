@@ -214,9 +214,8 @@ No workflow publishes releases or changes your client configuration. When a
 release is published, the release workflow checks its tag against the manifest
 version and moves the tag `latest` to the newest release.
 
-This public bundle supports regular use of CBE / CLIP. Internal staff tooling
-is separate and is not required to install or use these skills. Keep facts to
-what the public documentation states.
+This public bundle supports regular use of CBE / CLIP. Keep facts to what the
+public documentation states.
 
 The skills state facts from the CBE.next pages on docs.vbc.ac.at (source: the
 `newdocs` repository). Until the CBE.next release, the authoritative source is
