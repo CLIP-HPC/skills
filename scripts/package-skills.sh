@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Zip each skill for upload as a claude.ai organization or personal skill.
-# Usage: scripts/package-skills.sh [skill ...]   (default: the cbe plugin's skills)
+# Usage: scripts/package-skills.sh [skill ...]   (default: every plugin's skills)
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,7 +8,7 @@ dist="$repo_root/dist"
 mkdir -p "$dist"
 
 if [ "$#" -eq 0 ]; then
-  set -- $(ls "$repo_root/plugins/cbe/skills")
+  set -- $(for dir in "$repo_root"/plugins/*/skills/*/; do basename "$dir"; done)
 fi
 
 for skill in "$@"; do

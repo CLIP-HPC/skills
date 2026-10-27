@@ -113,14 +113,53 @@ class BundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "without credentials"):
             validate(self.root)
 
+    def add_local_plugin(self, name, skill):
+        """Add a minimal second local plugin with one skill to the catalog."""
+        folder = self.root / "plugins" / name
+        manifest = json.loads((self.root / "plugins/cbe/plugin.json").read_text())
+        (folder / "skills" / skill).mkdir(parents=True)
+        (folder / "plugin.json").write_text(json.dumps({**manifest, "name": name}))
+        (folder / "skills" / skill / "SKILL.md").write_text(
+            f"---\nname: {skill}\ndescription: Test skill.\nmetadata:\n"
+            "  display-name: Test\n  short-description: A test skill for a second plugin\n"
+            "  example-task: test.\n---\n\nBody.\n")
+        path = self.root / "marketplace.json"
+        catalog = json.loads(path.read_text())
+        catalog["plugins"].append({"source": f"./plugins/{name}", "category": "Productivity"})
+        path.write_text(json.dumps(catalog))
+
+    def test_second_local_plugin_is_generated_and_validated(self):
+        self.add_local_plugin("other", "other-skill")
+        generate(self.root)
+        self.assertEqual(validate(self.root), (2, 10))
+        claude = json.loads((self.root / ".claude-plugin/marketplace.json").read_text())
+        self.assertEqual([entry["name"] for entry in claude["plugins"]], ["cbe", "other"])
+        self.assertTrue((self.root / "plugins/other/.claude-plugin/plugin.json").is_file())
+        self.assertTrue((self.root / "plugins/other/skills/other-skill/agents/openai.yaml").is_file())
+
+    def test_skill_names_are_unique_across_plugins(self):
+        self.add_local_plugin("other", "cbe-next")
+        generate(self.root)
+        with self.assertRaisesRegex(ValueError, "Duplicate skill name"):
+            validate(self.root)
+
     def test_install_all_skills_and_repeat_without_changes(self):
-        source = self.root / "plugins/cbe/skills"
+        self.add_local_plugin("other", "other-skill")
+        sources = installer.plugin_skills(self.root)
+        self.assertEqual(sources, [self.root / "plugins/cbe/skills", self.root / "plugins/other/skills"])
         destination = self.root.parent / "destination with spaces"
-        self.assertEqual(installer.install(source, destination), 9)
-        for skill in source.iterdir():
+        self.assertEqual(installer.install(sources, destination), 10)
+        for skill in (path for source in sources for path in source.iterdir()):
             self.assertTrue((destination / skill.name).is_symlink())
             self.assertEqual((destination / skill.name).resolve(), skill.resolve())
-        self.assertEqual(installer.install(source, destination), 0)
+        self.assertEqual(installer.install(sources, destination), 0)
+
+    def test_install_selected_plugin_only(self):
+        self.add_local_plugin("other", "other-skill")
+        self.assertEqual(installer.plugin_skills(self.root, ["other"]),
+                         [self.root / "plugins/other/skills"])
+        with self.assertRaisesRegex(ValueError, "Unknown plugin"):
+            installer.plugin_skills(self.root, ["missing"])
 
     def test_install_conflict_leaves_whole_destination_unchanged(self):
         source = self.root / "plugins/cbe/skills"
@@ -134,7 +173,7 @@ class BundleTests(unittest.TestCase):
                 conflict.mkdir()
                 (conflict / "keep").write_text("existing skill")
             with self.assertRaisesRegex(ValueError, "Refusing to replace"):
-                installer.install(source, destination)
+                installer.install([source], destination)
             self.assertEqual(list(destination.iterdir()), [conflict])
 
 
