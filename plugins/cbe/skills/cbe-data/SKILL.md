@@ -1,6 +1,6 @@
 ---
 name: cbe-data
-description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use before deleting, moving, renaming, or overwriting any file or directory under /groups (rm, mv, find -delete, rsync --delete, rclone sync, shell redirection onto an existing file), even for a quick cleanup, when the user names only a relative path and the working directory is under /groups, and when recovering something deleted by mistake. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS."
+description: "Choose storage and transfer methods on CBE.next; stage job data, restore files from snapshots, check quotas, retention, automatic deletion, and permissions, or archive results. Use before deleting, moving, renaming, or overwriting any file or directory under /groups (rm, mv, find -delete, rsync --delete, rclone sync, shell redirection onto an existing file), even for a quick cleanup, when the user names only a relative path and the working directory is under /groups, and when recovering something deleted by mistake. Use for $HOME in /users, /scratch and $SCRATCHDIR on BeeGFS, per-job /tmp, /groups, /clustertmp, /resources, and transfers to or from laptops, campus workstations, Globus, Azure archive with AzCopy, FileSender, and EOS; use grid-data from the grid plugin for XRootD and grid storage."
 metadata:
   display-name: "CBE data"
   short-description: "Store, stage, restore, and transfer cluster data"
@@ -105,7 +105,7 @@ ls /users/.snapshot
 | Azure archive (cold data) | AzCopy | See below. |
 | External collaborators, small data | ACOnet FileSender (https://filesender.aco.net/) | Browser-based; up to 90 files and 250 GB per transfer. |
 | S3, Azure Blob, SharePoint/OneDrive, WebDAV, SFTP | `rclone` | Configure a remote once with `rclone config` (stored in `$HOME`). Use `rclone copy`, run large copies as batch jobs, and verify with `rclone check`. `rclone sync` deletes files at the destination: dry-run first (`--dry-run`) and get approval. |
-| EOS, XRootD, VOMS (HEP) | `/eos` FUSE mount; `eos` client on login nodes | `xrdcp`, `xrdfs`, and the VOMS tools are *not available yet*. The partition `grid` is open only to the grid experiment groups. |
+| EOS, XRootD, VOMS (HEP) | `/eos` FUSE mount; `eos` client on login nodes | `xrdcp`, `xrdfs`, and the VOMS tools are *not available yet*. For EOS, XRootD, certificates, and proxies, use the `grid-data` and `grid-identity` skills from the `grid` plugin, if installed. |
 
 Before a large transfer, confirm the source, destination, and free quota. After it, verify file counts and checksums, or rely on the tool's own verification (`rclone check`, AzCopy `--put-md5`).
 

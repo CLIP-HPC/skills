@@ -46,7 +46,7 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 - Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Slurm rejects `m` jobs without an explicit memory request of at least 700,000 MB per node (`--mem`) or 21,875 MB per CPU (`--mem-per-cpu`), for example `--mem=2T`.
 - No node uses SMT, so one Slurm CPU is one physical core.
 - Slurm rejects `--mem=0` (all memory) on every partition, and `g` jobs that request no GPU.
-- The partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`) is open only to the grid experiment groups; `sinfo` doesn't show it to other users.
+- The partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`) is open only to the grid experiment groups; `sinfo` doesn't show it to other users. It receives grid pilots routed by the Vienna Tier-2's compute element, not `sbatch` jobs from users. For grid submission, use the `grid-jobs` skill from the `grid` plugin, if installed.
 - Array indices: 0–3000.
 - Per-job temporary storage, both deleted when the job ends:
   - `/tmp` (`$TMPDIR`) and `/var/tmp`: private, on the fast BeeGFS filesystem behind `/scratch`. The best place for a job's temporary files.
