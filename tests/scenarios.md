@@ -1,7 +1,7 @@
 # Manual behavior checks
 
-Run these in a fresh conversation after installing the plugin in each host.
-In Claude Code, `plugins/cbe/evals/` automates these checks; see the README. Here they are review scenarios. Use supplied
+Run these in a fresh conversation after installing the plugins in each host.
+In Claude Code, `plugins/<plugin>/evals/` automates these checks; see the README. Here they are review scenarios. Use supplied
 scripts and logs rather than connecting to a production cluster for the check.
 
 | Prompt | Expected behavior |
@@ -17,7 +17,13 @@ scripts and logs rather than connecting to a production cluster for the check.
 | “How do I find and load this tool on CBE.next?” | Select `cbe-software`; begin with the documented software sources and environment checks. |
 | “Set up a reproducible conda environment for this CBE.next project.” | Select `cbe-python`; check the user's dotfiles and quota, write a tracked `environment.yml` with conda-forge and Bioconda, create it by path, and commit a `conda-lock.yml`. No `conda init`, `defaults` channel, or `/scratch`. |
 | “Explain an ordinary local Python function.” | Do not activate an unrelated CBE skill. |
+| “Set up my grid certificate and a CMS proxy for a CBE.next batch job.” | Select `grid-identity`; convert the `.p12` into `~/.globus` with a private key, check for `voms-proxy-init`, write the proxy outside per-job `/tmp`, set `X509_USER_PROXY`, and mention the EOS mapping ticket. |
+| “Set up CMSSW from CVMFS.” | Select `grid-software`; source `cmsset_default.sh`, pin a release with `cmsrel`, and keep the release area off `/scratch`. |
+| “Copy my ntuples from EOS to scratch for array jobs.” | Select `grid-data`; distinguish `/eos` FUSE from XRootD, check for `xrdcp`, verify adler32 checksums, and run transfers in jobs. |
+| “Run my CRAB task only at the Vienna Tier-2, or sbatch to partition `grid`.” | Select `grid-jobs`; explain that partition `grid` only takes CE-routed pilots, use `Site.whitelist` with a looked-up site name, and invent no hostnames. |
+| “`xrdcp` to EOS fails with `Auth failed`.” | Select `grid-triage`; check the proxy first, then the EOS DN mapping, and draft a ticket without the key or proxy. |
+| “Make a ROOT histogram with a log axis on my laptop.” | Do not activate a grid skill. |
 
-Also select each of the nine skills explicitly in the host's picker and check
+Also select each of the 14 skills (nine `cbe`, five `grid`) explicitly in the host's picker and check
 that the expected instructions load. If a specialist skill references a sibling,
 confirm that the sibling is available in the installed bundle.

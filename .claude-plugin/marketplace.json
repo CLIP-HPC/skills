@@ -4,7 +4,7 @@
     "name": "CLIP-HPC"
   },
   "metadata": {
-    "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster."
+    "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster, and for grid computing at the Vienna Tier-2."
   },
   "plugins": [
     {
@@ -12,6 +12,12 @@
       "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster: access, Slurm jobs, software, data, job tuning, failure triage, and migration from legacy CBE.",
       "category": "Productivity",
       "source": "./plugins/cbe"
+    },
+    {
+      "name": "grid",
+      "description": "Agent skills for grid computing at the Vienna BioCenter: grid certificates and VOMS proxies, CVMFS experiment software, EOS and XRootD transfers, grid job submission to the Vienna Tier-2 (Hephy-Vienna), and failure triage.",
+      "category": "Productivity",
+      "source": "./plugins/grid"
     }
   ]
 }

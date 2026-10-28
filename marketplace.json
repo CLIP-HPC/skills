@@ -2,8 +2,9 @@
   "name": "clip-hpc",
   "display_name": "CLIP-HPC",
   "owner": {"name": "CLIP-HPC"},
-  "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster.",
+  "description": "Agent skills for CBE.next, the Vienna BioCenter HPC cluster, and for grid computing at the Vienna Tier-2.",
   "plugins": [
-    {"source": "./plugins/cbe", "category": "Productivity"}
+    {"source": "./plugins/cbe", "category": "Productivity"},
+    {"source": "./plugins/grid", "category": "Productivity"}
   ]
 }

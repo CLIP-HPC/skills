@@ -1,0 +1,17 @@
+{
+  "name": "grid",
+  "version": "0.1.0",
+  "description": "Agent skills for grid computing at the Vienna BioCenter: grid certificates and VOMS proxies, CVMFS experiment software, EOS and XRootD transfers, grid job submission to the Vienna Tier-2 (Hephy-Vienna), and failure triage.",
+  "author": {
+    "name": "CLIP-HPC"
+  },
+  "repository": "https://github.com/CLIP-HPC/skills",
+  "keywords": [
+    "grid",
+    "wlcg",
+    "voms",
+    "xrootd",
+    "eos",
+    "cvmfs"
+  ]
+}
