@@ -1,22 +1,23 @@
 # Repository maintenance
 
 These instructions apply when modifying this repository. Cluster-use workflows
-belong in the relevant `plugins/cbe/skills/<skill>/SKILL.md`; keep maintenance
+belong in the relevant `plugins/<plugin>/skills/<skill>/SKILL.md`; keep maintenance
 instructions out of the installed plugin and skills.
 
 ## Sources of truth
 
-- `plugins/cbe/plugin.json`: portable Agent Plugins manifest and release version.
+- `plugins/<plugin>/plugin.json`: portable Agent Plugins manifest and release
+  version of each plugin (`cbe`, `grid`).
 - `marketplace.json`: source marketplace catalog.
-- `plugins/cbe/skills/*/SKILL.md`: shared instructions, discovery descriptions,
+- `plugins/*/skills/*/SKILL.md`: shared instructions, discovery descriptions,
   and neutral picker metadata.
 
 Edit these sources rather than their generated host adapters:
 
 - `.claude-plugin/marketplace.json`
 - `.agents/plugins/marketplace.json`
-- `plugins/cbe/.claude-plugin/plugin.json`
-- `plugins/cbe/skills/*/agents/openai.yaml`
+- `plugins/*/.claude-plugin/plugin.json`
+- `plugins/*/skills/*/agents/openai.yaml`
 
 After changing a source, regenerate and validate:
 
@@ -38,7 +39,7 @@ uv run --locked python -m unittest discover -s tests -v
 ```
 
 For description or workflow changes, run the Claude Code eval suite in
-`plugins/cbe/evals/` as described in the README, and keep at least one case where
+`plugins/<plugin>/evals/` as described in the README, and keep at least one case where
 no CBE skill should load. Eval cases contain prompts and graders only; they are
 installed with the plugin but never loaded as instructions.
 
@@ -55,7 +56,7 @@ catalog. Host adapters may change metadata format, not which plugins are availab
 ## Versions and releases
 
 This is a plugin and marketplace repository: clients only pick up a change after
-the version in `plugins/cbe/plugin.json` changes. Every user-facing change
+the version in that plugin's `plugin.json` changes. Every user-facing change
 therefore needs a version bump, so use versions sparingly:
 
 - Collect related changes on one feature branch. Bump the version once, in the
@@ -63,11 +64,16 @@ therefore needs a version bump, so use versions sparingly:
   after the bump.
 - Open the pull request when the branch is ready to release, not for each
   intermediate step.
-- After merging, release: tag the merge commit on `main` as `v<version>`, push
-  the tag, and create a GitHub release with notes from the commits since the
-  previous tag (`gh release create v<version> --generate-notes`). The release
-  workflow then checks the tag against the manifest version and moves the tag
-  `latest` to the newest release. Never move `latest` by hand.
+- Each plugin has its own version. Bump only the plugins whose shipped files
+  changed, and release each of them separately.
+- After merging, release: tag the merge commit on `main` with an annotated tag
+  `<plugin>-v<version>` (`git tag -a cbe-v0.6.1 -m cbe-v0.6.1`), push the tag,
+  and create a GitHub release with notes from the commits since that plugin's
+  previous tag (`gh release create cbe-v0.6.1 --verify-tag --generate-notes
+  --notes-start-tag <previous tag>`). Tags `v<version>` from before
+  `<plugin>-v<version>` are cbe releases. The release workflow then checks the
+  tag against `plugins/<plugin>/plugin.json` and moves the tag `latest` forward
+  to the release commit. Never move `latest` by hand.
 - Use semantic versions: patch for fixes and corrected facts, minor for new
   skills or workflows, major for incompatible changes to installation or
   plugin layout.

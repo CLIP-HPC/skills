@@ -25,17 +25,31 @@ jobs:
           fetch-depth: 0
       - name: Check the tag against the manifest version
         run: |
-          version="$(jq -r .version plugins/cbe/plugin.json)"
-          if [ "$TAG" != "v$version" ]; then
-            echo "::error::Release tag $TAG does not match plugins/cbe/plugin.json version $version"
+          # Releases are tagged <plugin>-v<version>; plain v<version> tags are
+          # the cbe releases from before the repository had several plugins.
+          case "$TAG" in
+            v[0-9]*) plugin=cbe; version="${TAG#v}" ;;
+            *-v[0-9]*) plugin="${TAG%-v*}"; version="${TAG#"$plugin"-v}" ;;
+            *) echo "::error::Release tag $TAG is not <plugin>-v<version>"; exit 1 ;;
+          esac
+          manifest="plugins/$plugin/plugin.json"
+          if [ ! -f "$manifest" ]; then
+            echo "::error::Release tag $TAG names no plugin: $manifest is missing"
+            exit 1
+          fi
+          expected="$(jq -r .version "$manifest")"
+          if [ "$version" != "$expected" ]; then
+            echo "::error::Release tag $TAG does not match $manifest version $expected"
             exit 1
           fi
       - name: Point latest at the newest release
         run: |
-          # A patch release for an older line must not move latest backwards.
-          newest="$(git tag -l 'v[0-9]*' --sort=-version:refname | head -n 1)"
-          if [ "$TAG" != "$newest" ]; then
-            echo "$TAG is older than $newest; leaving latest unchanged."
+          # Versions of different plugins don't compare, so move latest only
+          # forward in history: a patch release for an older line, which is not
+          # a descendant of latest, must not move latest backwards.
+          if git rev-parse -q --verify refs/tags/latest >/dev/null \
+             && ! git merge-base --is-ancestor "latest^{commit}" "$TAG^{commit}"; then
+            echo "$TAG is not newer than latest; leaving latest unchanged."
             exit 0
           fi
           git tag -f latest "$TAG^{commit}"

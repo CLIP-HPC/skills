@@ -211,8 +211,9 @@ Claude's `plugin validate` does not check `SKILL.md` frontmatter, so
 `scripts/validate.py` is the check for skill names and descriptions in both clients. The published
 Agent Plugins schema is vendored under `schemas/` so schema validation is offline.
 No workflow publishes releases or changes your client configuration. When a
-release is published, the release workflow checks its tag against the manifest
-version and moves the tag `latest` to the newest release.
+release is published, the release workflow checks its tag, `<plugin>-v<version>`,
+against that plugin's manifest version and moves the tag `latest` forward to the
+release commit. Older `v<version>` tags are `cbe` releases.
 
 This public bundle supports regular use of CBE / CLIP. Keep facts to what the
 public documentation states.
