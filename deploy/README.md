@@ -110,6 +110,10 @@ codex plugin list --marketplace clip-hpc    # cbe@clip-hpc installed and enabled
 Check that the nine CBE skills are available in a session. Check the effective
 policy on a target host as well, including any workspace or MDM layers.
 
+The marketplace also lists `grid@clip-hpc`, for the grid experiment groups. The
+host configuration doesn't enable it; users who need it install it themselves
+with `claude plugin install grid@clip-hpc` or `codex plugin add grid@clip-hpc`.
+
 ## Alternative: admin skill directories
 
 Both clients also read skills from an administrator directory, without a
