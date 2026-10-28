@@ -1,6 +1,6 @@
 ---
 name: cbe-next
-description: "Work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login atlas.cbenext.vbc.ac.at, nodes cbe-c3-*, cbe-g5-*, cbe-m3-*): connect over SSH, choose Slurm partitions c, g, and m and Slurm accounts, pick NVIDIA B200 GPUs or MIG slices, and write or submit sbatch, salloc, srun, and job-array jobs, including OpenOnDemand sessions. Use for general cluster access and job setup; use the specialized CBE skills for software, data, tuning, failure triage, and migration."
+description: "Work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login cbenext.vbc.ac.at, nodes cbe-c3-*, cbe-g5-*, cbe-m3-*): connect over SSH, choose Slurm partitions c, g, and m and Slurm accounts, pick NVIDIA B200 GPUs or MIG slices, and write or submit sbatch, salloc, srun, and job-array jobs, including OpenOnDemand sessions. Use for general cluster access and job setup; use the specialized CBE skills for software, data, tuning, failure triage, and migration."
 metadata:
   display-name: "CBE.next"
   short-description: "Connect to CBE.next and prepare Slurm jobs"
@@ -15,10 +15,10 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 
 ## Access
 
-- SSH alias `cbe.next` points to `atlas.cbenext.vbc.ac.at`. From outside the campus, go through the jump host `sshjump.vbc.ac.at` (`ssh -J sshjump.vbc.ac.at atlas.cbenext.vbc.ac.at`).
+- SSH alias `cbe.next` points to `cbenext.vbc.ac.at`. From outside the campus, go through the jump host `sshjump.vbc.ac.at` (`ssh -J sshjump.vbc.ac.at cbenext.vbc.ac.at`).
 - Authentication uses a 16-hour SSH certificate held in the user's `ssh-agent`. If SSH fails with an auth error, ask the user to run `step ssh login vbc-cbe` (unmanaged devices: `step ssh login --provisioner=VBC_user vbc-cbe`). You can't renew it yourself.
 - If SSH asks to accept a host key, stop and don't accept it. Tell the user to report it in the CBE.next MS Teams channel.
-- Browser access: OpenOnDemand at https://ood.atlas.cbenext.vbc.ac.at/ offers Jupyter, RStudio Server, code-server, and a Remote Desktop (the replacement for XPRA). Use it for GUI and notebook work, not X11 in batch jobs.
+- Browser access: OpenOnDemand at https://ood.cbenext.vbc.ac.at/ offers Jupyter, RStudio Server, code-server, and a Remote Desktop (the replacement for XPRA). Use it for GUI and notebook work, not X11 in batch jobs.
 
 ## Rules
 
@@ -169,6 +169,6 @@ Support: the CBE.next MS Teams channel for operational questions, or the HPC Ser
 
 ## Details (fetch as Markdown)
 
-https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of: `ssh-system-access`, `quick-start`, `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `containers`, `python-and-conda`, `storage-and-data`, `transfer-data`, `openondemand-web-applications`, `bring-your-own-license`, `troubleshooting-and-support`, `change-notes`.
+https://docs.vbc.ac.at/research-computing/cbe/<page>/index.md, where `<page>` is one of: `ssh-system-access`, `quick-start`, `cluster-resources`, `slurm-jobs`, `gpu-jobs`, `software-environment-eessi`, `containers`, `python-and-conda`, `storage-and-data`, `transfer-data`, `grid`, `openondemand-web-applications`, `bring-your-own-license`, `troubleshooting-and-support`, `change-notes`.
 
 SSH problems in general: https://docs.vbc.ac.at/research-computing/ssh-troubleshooting/index.md.
