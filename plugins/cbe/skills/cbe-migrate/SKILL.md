@@ -90,7 +90,7 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | `--partition=g` | `g` |
 | `--gres=gpu:<p100\|v100\|rtx\|a100>:N`, or untyped | `--gres=gpu:nvidia_b200:N` for a full B200 (about 180 GB), or `--gres=gpu:nvidia_b200_1g.23gb:1` for a MIG slice (23 GB, single GPU only) |
 | `--qos=c_short`, `m_long`, `g_rapid`, and similar | Keep. The same names and run times exist (`rapid` 1 h, `short` 8 h, `medium` 2 days, `long` 14 days); `--qos=long` and similar also work, because a submit hook adds the partition prefix. The per-QOS resource caps differ from legacy CBE (see the `cbe-next` skill). Without `--qos`, jobs get `short`. |
-| `--qos=grid_generic` | Keep, with `--partition=grid`. The partition is open only to the grid experiment groups. |
+| `--qos=grid_generic` | Don't carry over. On CBE.next, the partition `grid` only receives pilots routed by the Vienna Tier-2's compute element. Submit grid work through the experiment's tools (the `grid-jobs` skill from the `grid` plugin, if installed); run local analysis in partition `c` with an ordinary QOS. |
 | implicit time limit from QOS | Always set an explicit `--time` within the QOS limit. Carry over the old effective limit, or better, measured runtime plus a margin, and choose the shortest QOS that fits it. |
 | `--nodelist`, `--exclude`, `--constraint` with `clip-c*`, `clip-g*`, `clip-m*` | Remove. Request generic resources. |
 | `--reservation=...` (interactive) | `--qos=interactive`; the submit hook adds the reservation `interactive` (partition `c`) or `interactive_gpu` (partition `g`, MIG slices), which hold resources on weekdays from 09:00 to 17:00. |
@@ -160,7 +160,7 @@ Suggest labelling or removing the legacy script once the group confirms the new 
 
 Stop for:
 
-- grid jobs (`grid_generic`), which have no CBE.next target yet;
+- grid jobs (`grid_generic`), which move to the experiment's grid tools, not to `sbatch`;
 - multi-terabyte transfers;
 - software with no equivalent after `module spider`;
 - license server access;

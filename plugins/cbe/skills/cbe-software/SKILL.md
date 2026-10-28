@@ -21,7 +21,7 @@ Facts below reflect the docs as of 2026-10-19 and the tools in `/software/system
 | Galaxy reference data | `/cvmfs/data.galaxyproject.org` | Reference genomes and prebuilt aligner indexes |
 | Refgenie genomes | `/cvmfs/refgenomes-databio.galaxyproject.org` | Refgenie-managed genome assets |
 | CERN unpacked images | `/cvmfs/unpacked.cern.ch` | Selected images mirrored from Docker Hub, GitHub, Quay, NVIDIA, and others |
-| Grid experiment software | `/cvmfs/<repo>`, for example `alice.cern.ch`, `atlas.cern.ch`, `cms.cern.ch` | HEP experiment stacks and conditions data |
+| Grid experiment software | `/cvmfs/<repo>`, for example `alice.cern.ch`, `atlas.cern.ch`, `cms.cern.ch` | HEP experiment stacks and conditions data; for setup, use the `grid-software` skill from the `grid` plugin, if installed |
 | SBGrid | `/programs` | Structural biology collection |
 | Curated reference data | `/resources` | Genomes and indexes |
 | Your own | containers you pull or build; `uv` or conda environments; binaries in `$HOME` or `/groups` | Anything not provided above |
