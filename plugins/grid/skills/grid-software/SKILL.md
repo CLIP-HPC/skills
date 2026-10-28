@@ -77,7 +77,7 @@ Choose the `<platform>` directory that matches the host OS (`cat /etc/os-release
 
 ## Grid client tools
 
-The VBC docs say `xrdcp`, `xrdfs`, `voms-proxy-init`, and `voms-proxy-info` are *not available yet* on CBE.next (COPS-232). The `eos` client is installed on the login nodes. Check before using any of them:
+For `xrdcp`, `xrdfs`, `voms-proxy-init`, and `voms-proxy-info`, the VBC docs describe them, but their installation on CBE.next is still being checked (COPS-232). The `eos` client is installed on the login nodes. Check before using any of them:
 
 ```bash
 command -v xrdcp xrdfs voms-proxy-init voms-proxy-info gfal-copy eos alien.py
@@ -95,4 +95,5 @@ Experiment environments often bring their own clients (ALICE `xjalienfs` include
 
 - https://docs.vbc.ac.at/research-computing/cbe/software-environment-eessi/index.md (section "Grid experiment software")
 - https://docs.vbc.ac.at/research-computing/cbe/containers/index.md (CERN unpacked images)
+- https://docs.vbc.ac.at/research-computing/cbe/grid/index.md
 - Experiment documentation: ALICE (https://aliceo2group.github.io/analysis-framework/), CMS (https://cms-sw.github.io/), Belle II (https://software.belle2.org/), CernVM-FS (https://cvmfs.readthedocs.io/en/stable/).

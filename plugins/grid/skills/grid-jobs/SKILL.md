@@ -1,6 +1,6 @@
 ---
 name: grid-jobs
-description: "Submit and follow grid jobs for ALICE, CMS, and Belle II, in general or targeted at the Vienna Tier-2 (WLCG site Hephy-Vienna, HTCondor-CE ce-1.grid.vbc.ac.at): ALICE JAliEn with alien.py and JDL, CMS CRAB with crab submit and Site.whitelist, Belle II gbasf2 and DIRAC, direct HTCondor-CE tests with condor_ce_trace and grid universe submit files, and what the CBE.next partition grid with QOS grid_generic is for. Use when choosing between grid submission and local Slurm jobs, or moving legacy grid_generic workflows. Use cbe-next for ordinary sbatch jobs, grid-identity for proxies, grid-software for experiment environments, and grid-triage for failed or stuck grid jobs."
+description: "Submit and follow grid jobs for ALICE, CMS, and Belle II, in general or targeted at the Vienna Tier-2 (WLCG site Hephy-Vienna, CMS T2_AT_Vienna, ALICE Vienna, Belle II LCG.HEPHY.at, HTCondor-CE ce-1.grid.vbc.ac.at): ALICE JAliEn with alien.py and JDL, CMS CRAB with crab submit and Site.whitelist, Belle II gbasf2 and DIRAC, direct HTCondor-CE tests with condor_ce_trace and grid universe submit files, and what the CBE.next partition grid with QOS grid_generic is for. Use when choosing between grid submission and local Slurm jobs, or moving legacy grid_generic workflows. Use cbe-next for ordinary sbatch jobs, grid-identity for proxies, grid-software for experiment environments, and grid-triage for failed or stuck grid jobs."
 metadata:
   display-name: "Grid jobs"
   short-description: "Submit grid jobs, generally or to the Vienna Tier-2"
@@ -16,6 +16,15 @@ Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28 and GOCDB as of 20
 - The VBC runs the WLCG site **Hephy-Vienna** (GOCDB). It supports the VOs **ALICE, CMS, and Belle II**.
 - Jobs enter through the **HTCondor-CE `ce-1.grid.vbc.ac.at`**. The CE routes pilots into the CBE.next partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`), which only the grid experiment groups can use.
 - **Users don't submit to the partition `grid` with `sbatch`.** It only receives jobs routed by the CE. A user's job reaches it through the experiment's workload management system, whose pilots run there.
+- Each experiment names the site differently:
+
+  | Experiment | Site name | Used in |
+  |---|---|---|
+  | CMS | `T2_AT_Vienna` | CRAB `config.Site.whitelist`, CMS site status |
+  | ALICE | `Vienna` | JAliEn, MonALISA |
+  | Belle II | `LCG.HEPHY.at` | DIRAC, gbasf2 |
+
+  The VBC docs still mark the ALICE and Belle II names for confirmation (COPS-232); if a tool rejects one, report it rather than guessing another.
 - The site also runs an ALICE VO-box (`alien.grid.vbc.ac.at`) and Frontier squid caches. These are site services, not something users configure.
 
 So there are two paths, and the first decision is which one the user needs:
@@ -37,12 +46,12 @@ So there are two paths, and the first decision is which one the user needs:
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 cd CMSSW_<version>/src && cmsenv
 source /cvmfs/cms.cern.ch/common/crab-setup.sh
-crab checkwrite --site=<T2 site name>     # can you write to the output site?
+crab checkwrite --site=<storage site>     # can you write to the output site?
 crab submit -c crabConfig.py
 crab status -d crab_projects/crab_<request>
 ```
 
-- To run only at Vienna, set `config.Site.whitelist = ['<CMS site name>']`. Look up the CMS site name for the WLCG site Hephy-Vienna in CMS CRIC (https://cms-cric.cern.ch/); don't guess it. A whitelist without the input data at that site makes jobs read remotely or wait; check where the dataset is first (`dasgoclient -query="site dataset=<dataset>"`).
+- To run only at Vienna, set `config.Site.whitelist = ['T2_AT_Vienna']`. A whitelist without the input data at that site makes jobs read remotely or wait; check where the dataset is first (`dasgoclient -query="site dataset=<dataset>"`).
 - `config.Site.storageSite` is where outputs go; it must be a site where the user has write permission (`crab checkwrite`).
 - CRAB creates the proxy itself if needed.
 
@@ -57,7 +66,7 @@ alien.py masterjob <id>       # subjobs of a split job
 ```
 
 - Most ALICE analysis runs as LEGO or Hyperloop trains, not as hand-submitted jobs; check with the user's analysis group first.
-- Jobs go where their input data is (`InputData` in the JDL). Forcing a site with `Requirements` is unusual; use it only for site tests, and only after asking.
+- The ALICE central services decide where jobs run, mostly by where the input data is (`InputData` in the JDL); the Vienna site is `Vienna`. Forcing a site with `Requirements` is unusual; use it only for site tests, and only after asking.
 
 ## Belle II: gbasf2
 
@@ -70,7 +79,7 @@ gb2_job_status -p <project>
 gb2_ds_get <output dataset>
 ```
 
-The gbasf2 setup and the options for restricting sites are in the Belle II computing documentation; check `gbasf2 --help` for the installed version, and look up the DIRAC site name for Hephy-Vienna instead of guessing it.
+The gbasf2 setup and the options for restricting sites are in the Belle II computing documentation; check `gbasf2 --help` for the installed version, The DIRAC site name of the Vienna Tier-2 is `LCG.HEPHY.at`.
 
 ## Direct HTCondor-CE submission
 
@@ -109,6 +118,6 @@ Legacy CBE scripts with `--qos=grid_generic` don't move to CBE.next as `sbatch` 
 ## Details
 
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md (partition `grid`)
-- https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (section "Grid, EOS, XRootD, and VOMS")
+- https://docs.vbc.ac.at/research-computing/cbe/grid/index.md
 - GOCDB endpoints of Hephy-Vienna: https://goc.egi.eu/gocdbpi/public/?method=get_service_endpoint&sitename=Hephy-Vienna
 - Upstream: CRAB (https://twiki.cern.ch/twiki/bin/view/CMSPublic/CRAB3ConfigurationFile), JAliEn (https://jalien.docs.cern.ch/), HTCondor-CE (https://htcondor.com/htcondor-ce/).
