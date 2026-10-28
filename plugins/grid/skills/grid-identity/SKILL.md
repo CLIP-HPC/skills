@@ -40,7 +40,7 @@ The VBC docs describe a CERN grid certificate, which needs a CERN account:
    rm myCert.p12
    ```
 
-   The VBC docs add `-nodes`, which stores the key unencrypted. Without `-nodes`, `openssl` asks for a new PEM passphrase and the key stays encrypted on disk; `voms-proxy-init` then asks for it each time. Prefer the encrypted key, unless the user needs unattended proxy creation and accepts the risk.
+   The second command asks for the `.p12` import password and then for a new passphrase that protects the key. Keep the key encrypted, as the VBC docs require: never add `-nodes`, which many guides do. Anyone who can read an unencrypted `userkey.pem` can act as the user on the grid. `voms-proxy-init` asks for the passphrase each time, and jobs only see the short-lived proxy.
 3. Check the result:
 
    ```bash
@@ -55,13 +55,13 @@ Registration happens with the experiment, not at the VBC: the user signs in to t
 
 - CMS: the CMS IAM, https://cms-auth.cern.ch/
 - ALICE: the ALICE IAM, https://alice-auth.cern.ch/
-- Belle II: follow the Belle II computing newcomer instructions; registration uses the Belle II VOMS at KEK.
+- Belle II: the VOMS and DIRAC registration in the gbasf2 documentation, https://software.belle2.org/development/sphinx/online_book/computing/gbasf2.html
 
 Check the experiment's own documentation for the current procedure, which changes as VOs move from VOMS-Admin to IAM.
 
 ## Create and inspect a proxy
 
-`voms-proxy-init` and `voms-proxy-info` are *not available yet* on CBE.next (docs, COPS-232). Check first:
+Run `voms-proxy-init` on a login node. For `voms-proxy-init` and `voms-proxy-info`, the VBC docs describe them, but their installation on CBE.next is still being checked (COPS-232). Check first:
 
 ```bash
 command -v voms-proxy-init voms-proxy-info
@@ -84,16 +84,17 @@ voms-proxy-info --timeleft --actimeleft      # seconds left: proxy, VOMS attribu
 The default proxy file is `/tmp/x509up_u$(id -u)`. On CBE.next, each job has a private `/tmp`, so a job can't see a proxy created on the login node there. Write the proxy to `$HOME` and point the job at it:
 
 ```bash
-voms-proxy-init --voms cms --valid 96:00 --out "$HOME/.globus/proxy.pem"
-chmod 600 "$HOME/.globus/proxy.pem"
+voms-proxy-init --voms cms --valid 72:00 --out "$HOME/.globus/x509up_u$(id -u)"
 ```
 
 ```bash
 #SBATCH ...
-export X509_USER_PROXY="$HOME/.globus/proxy.pem"
+export X509_USER_PROXY="$HOME/.globus/x509up_u$(id -u)"
 voms-proxy-info --exists --valid 2:00 || { echo "proxy expires too soon" >&2; exit 1; }
 ```
 
+- `voms-proxy-init` creates the file readable only by the user.
+- You need a proxy in a job only when the job uses grid protocols (XRootD, WebDAV, experiment tools).
 - Request a proxy that outlives the job, including queue time. If a job runs longer than the VOMS attribute can last, split the job or stage its data before the proxy expires.
 - Don't put the proxy in `/groups`, where group members could read it.
 - Grid jobs submitted through an experiment framework handle proxy delegation themselves; see `grid-jobs`.
@@ -114,5 +115,5 @@ WLCG is moving from X.509 proxies to tokens (WLCG JWTs from the VO's IAM). Exper
 
 ## Details (fetch as Markdown)
 
-- https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (section "Grid, EOS, XRootD, and VOMS")
+- https://docs.vbc.ac.at/research-computing/cbe/grid/index.md (sections "Set up your grid identity" and "Use a proxy in Slurm jobs")
 - Support: the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6).

@@ -105,7 +105,7 @@ ls /users/.snapshot
 | Azure archive (cold data) | AzCopy | See below. |
 | External collaborators, small data | ACOnet FileSender (https://filesender.aco.net/) | Browser-based; up to 90 files and 250 GB per transfer. |
 | S3, Azure Blob, SharePoint/OneDrive, WebDAV, SFTP | `rclone` | Configure a remote once with `rclone config` (stored in `$HOME`). Use `rclone copy`, run large copies as batch jobs, and verify with `rclone check`. `rclone sync` deletes files at the destination: dry-run first (`--dry-run`) and get approval. |
-| EOS, XRootD, VOMS (HEP) | `/eos` FUSE mount; `eos` client on login nodes | `xrdcp`, `xrdfs`, and the VOMS tools are *not available yet*. For EOS, XRootD, certificates, and proxies, use the `grid-data` and `grid-identity` skills from the `grid` plugin, if installed. |
+| EOS, XRootD, VOMS (HEP) | `/eos` on login and compute nodes; `eos` client on login nodes; `xrdcp` and `xrdfs` | EOS has no snapshots and no backup. For EOS, XRootD, certificates, and proxies, use the `grid-data` and `grid-identity` skills from the `grid` plugin, if installed. |
 
 Before a large transfer, confirm the source, destination, and free quota. After it, verify file counts and checksums, or rely on the tool's own verification (`rclone check`, AzCopy `--put-md5`).
 
@@ -135,7 +135,7 @@ Support: the HPC Servicedesk (https://vbc.atlassian.net/servicedesk/customer/por
 ## Details (fetch as Markdown)
 
 - https://docs.vbc.ac.at/research-computing/cbe/storage-and-data/index.md
-- https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (rsync, rclone, Globus, grid tools)
+- https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (rsync, rclone, Globus, EOS)
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md
 - https://docs.vbc.ac.at/data-services/<page>/index.md, where `<page>` is one of `storage`, `storage-best-practices`, `storage-parallelization`, `storage-quotas`, `group-folder-structure`, `group-folder-permissions`, `azure-archive`, `use-azcopy-on-cbe`, `aconet-filesender`.
 

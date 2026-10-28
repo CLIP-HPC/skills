@@ -15,13 +15,13 @@ Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28 and GOCDB (site He
 
 | Access | Where | Authentication | Status |
 |---|---|---|---|
-| `/eos` FUSE mount | CBE.next | local account | available |
+| `/eos` mount | CBE.next login and compute nodes | local account | available |
 | `eos` CLI | CBE.next login nodes | local account | available |
-| XRootD `root://eos.grid.vbc.ac.at` | anywhere with network access | grid certificate or proxy, DN must be on the EOS mapping list | `xrdcp` and `xrdfs` *not available yet* on CBE.next |
+| XRootD `root://eos.grid.vbc.ac.at` | anywhere with network access | VOMS proxy, DN must be on the EOS mapping list | `xrdcp` and `xrdfs` documented; installation being checked (COPS-232) |
 | WebDAV `https://eos.grid.vbc.ac.at:8443` | anywhere | grid certificate or proxy | client tools vary |
 | CERNBox https://cernbox.grid.vbc.ac.at | browser and sync client | VBC account | see the CERNBox page |
 
-The XRootD redirector and the WebDAV endpoint are registered in GOCDB for the WLCG site Hephy-Vienna. The VBC docs list them as the endpoints used on legacy CBE; they don't confirm yet which nodes of CBE.next can reach them.
+The VBC docs and GOCDB (WLCG site Hephy-Vienna) list both endpoints.
 
 Paths on EOS:
 
@@ -32,7 +32,7 @@ Paths on EOS:
 ## Hard rules
 
 - Never delete or overwrite experiment data under `/eos/vbc/experiments` or someone else's directory. Before any `rm`, `eos rm`, `xrdfs rm`, `gfal-rm`, `xrdcp --force`, or `rsync --delete` on EOS, show the exact paths and wait for the user's confirmation.
-- The VBC docs describe no snapshots or backup for EOS, unlike `/groups`; treat deletions as permanent. CERNBox versions cover only files in CERNBox and only the last 10 versions.
+- EOS has no snapshots and no backup: deleted or overwritten files can't be restored. Keep a copy of data that can't be reproduced. CERNBox versions cover only files in CERNBox and only the last 10 versions.
 - Run large transfers as batch jobs, not on the login nodes.
 - Credentials: see `grid-identity`. Never put the key or a proxy on EOS.
 
@@ -58,7 +58,7 @@ If `/eos` hangs or reports `Transport endpoint is not connected` on a node, don'
 
 ```bash
 command -v xrdcp xrdfs || echo "XRootD clients not installed here"
-export X509_USER_PROXY="$HOME/.globus/proxy.pem"    # see grid-identity
+export X509_USER_PROXY="$HOME/.globus/x509up_u$(id -u)"    # see grid-identity
 xrdfs eos.grid.vbc.ac.at ls -l /eos/vbc/group/<group>/
 xrdfs eos.grid.vbc.ac.at stat /eos/vbc/group/<group>/file.root
 xrdcp --cksum adler32 root://eos.grid.vbc.ac.at//eos/vbc/group/<group>/file.root "$SCRATCHDIR/"
@@ -91,6 +91,7 @@ For the rest of the CBE.next filesystems, see `cbe-data`.
 
 ## Details (fetch as Markdown)
 
-- https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md (section "Grid, EOS, XRootD, and VOMS")
+- https://docs.vbc.ac.at/research-computing/cbe/grid/index.md (section "Access EOS")
+- https://docs.vbc.ac.at/research-computing/cbe/transfer-data/index.md
 - https://docs.vbc.ac.at/data-services/cernbox-sync-and-share/index.md
 - Upstream: EOS (https://eos-docs.web.cern.ch/), XRootD (https://xrootd.org/docs.html), gfal2-util (https://dmc-docs.web.cern.ch/dmc-docs/gfal2-util.html).

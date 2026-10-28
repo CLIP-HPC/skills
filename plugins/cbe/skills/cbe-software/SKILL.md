@@ -44,7 +44,7 @@ Facts below reflect the docs as of 2026-10-19 and the tools in `/software/system
 - Prefer `rg` and `fd` over `grep -r` and `find`, but give them a narrow starting directory. Never sweep all of `/groups`, `/scratch`, or `/cvmfs`: that loads shared storage for everyone.
 - `btop`, `btm`, `lazygit`, `yazi`, and `fzf` need an interactive terminal. Suggest them to the user; don't run them from a non-interactive agent shell.
 
-Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools (*not available yet*).
+Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools may not be installed yet (COPS-232; see the `grid` plugin).
 
 ## Search in this order
 

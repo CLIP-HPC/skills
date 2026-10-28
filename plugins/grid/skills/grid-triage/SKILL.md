@@ -22,9 +22,9 @@ openssl x509 -in ~/.globus/usercert.pem -noout -subject -enddate
 
 | Symptom | Likely cause | Check or fix |
 |---|---|---|
-| `command not found: voms-proxy-init` | Tools *not available yet* on CBE.next (COPS-232) | Use an experiment environment (`grid-software`) or another machine; don't build them in `$HOME` |
+| `command not found: voms-proxy-init` | Tools not installed on this node; installation is still being checked (COPS-232) | Use an experiment environment (`grid-software`) or another machine; don't build them in `$HOME` |
 | `Proxy not found`, or `timeleft : 0:00:00` | No proxy, or expired | Create one (`grid-identity`) |
-| Proxy fine on the login node, missing in the job | Proxy in `/tmp`, which is private per job on CBE.next | Write it to `$HOME/.globus/proxy.pem` and set `X509_USER_PROXY` in the job |
+| Proxy fine on the login node, missing in the job | Proxy in `/tmp`, which is private per job on CBE.next | Write it to `$HOME/.globus/x509up_u$(id -u)` and set `X509_USER_PROXY` in the job |
 | No VOMS extension, or `actimeleft` 0 | `voms-proxy-init` without `--voms`, or the attribute expired before the proxy | Recreate with `--voms <vo>` |
 | `User unknown to this VO`, or no FQANs | DN not registered or membership expired | Check the VO's registration page; after a certificate renewal, register the new DN |
 | `certificate has expired` on the user certificate | The certificate is out of date | Renew it, then update VO registration and EOS mapping |
@@ -50,7 +50,7 @@ ls -ld /eos/vbc/<path>                 # FUSE: same path, local identity
 | Checksum mismatch | Transfer corrupted or file changed during copy; copy again to a new name and compare, never trust the partial file |
 | `/eos` hangs, or `Transport endpoint is not connected` | FUSE mount problem on that node; note the node and time, try another node, and ticket it |
 | Works from FUSE, fails with XRootD | Identity or mapping, not the data; go back to step 1 |
-| Network timeout from a compute node only | The VBC docs don't confirm EOS endpoint reachability from compute nodes yet; report node and time |
+| Network timeout from one compute node only | Node or network problem: `/eos` and the endpoints should work on all nodes; report node and time |
 
 Missing CVMFS repository: `ls /cvmfs/<repo>` on the node. If it fails on one node and works on another, it is a node problem for a ticket; if it fails everywhere, check the repository name.
 
@@ -70,6 +70,6 @@ Hand over to `cbe-ticket` with:
 - the exact command and complete error output;
 - `voms-proxy-info --all` output (it contains no secret), and the DN;
 - node name, time, and paths involved;
-- for jobs, the framework, task or job IDs, and site names.
+- for jobs, the experiment, framework, task or job IDs, and the site name (`T2_AT_Vienna`, `Vienna`, or `LCG.HEPHY.at`).
 
 Never attach `userkey.pem` or a proxy file. EOS mapping requests and missing grid tools also go to the HPC Servicedesk.
