@@ -126,7 +126,7 @@ Record the old and new module names and versions for each workflow, so the user 
 
 | Legacy CBE | CBE.next |
 |---|---|
-| JupyterHub | OpenOnDemand Jupyter (https://ood.atlas.cbenext.vbc.ac.at/). Register custom environments as kernels. |
+| JupyterHub | OpenOnDemand Jupyter (https://ood.cbenext.vbc.ac.at/). Register custom environments as kernels. |
 | RStudio | OpenOnDemand RStudio Server |
 | XPRA or remote desktop | OpenOnDemand Remote Desktop: a Linux desktop in the browser, running as a Slurm job. |
 | X11 in batch or interactive jobs | Don't port. Use OpenOnDemand. |
