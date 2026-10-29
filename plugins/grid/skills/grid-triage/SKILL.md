@@ -22,7 +22,7 @@ openssl x509 -in ~/.globus/usercert.pem -noout -subject -enddate
 
 | Symptom | Likely cause | Check or fix |
 |---|---|---|
-| `command not found: voms-proxy-init` | Tools not installed on this node; installation is still being checked (COPS-232) | Use an experiment environment (`grid-software`) or another machine; don't build them in `$HOME` |
+| `command not found: voms-proxy-init` | The VOMS tools are installed on all CBE.next login and compute nodes, so a node or `PATH` problem | Compare with a fresh login shell and another node; report the node; don't build the tools in `$HOME` |
 | `Proxy not found`, or `timeleft : 0:00:00` | No proxy, or expired | Create one (`grid-identity`) |
 | Proxy fine on the login node, missing in the job | Proxy in `/tmp`, which is private per job on CBE.next | Write it to `$HOME/.globus/x509up_u$(id -u)` and set `X509_USER_PROXY` in the job |
 | No VOMS extension, or `actimeleft` 0 | `voms-proxy-init` without `--voms`, or the attribute expired before the proxy | Recreate with `--voms <vo>` |
@@ -37,12 +37,13 @@ openssl x509 -in ~/.globus/usercert.pem -noout -subject -enddate
 Check that the path exists and your identity is the one EOS expects:
 
 ```bash
-xrdfs eos.grid.vbc.ac.at stat /eos/vbc/<path>
+xrdfs root://eos.grid.vbc.ac.at stat /eos/vbc/<path>
 ls -ld /eos/vbc/<path>                 # FUSE: same path, local identity
 ```
 
 | Symptom | Likely cause |
 |---|---|
+| `Secsss (getKeyTab): Unable to open /etc/eos.keytab; permission denied` | No valid proxy found: create one (`grid-identity`), or check that `X509_USER_PROXY` points to the proxy file. Not a path permission problem |
 | `[ERROR] Auth failed`, or `[FATAL] Auth failed` | No valid proxy, or the DN is not on the EOS mapping list (Servicedesk ticket with the DN) |
 | `Permission denied` with a valid, mapped identity | The mapped account has no rights on that path; check with the path's owner or group |
 | `No such file or directory` | Wrong path, often a missing `//` after the host in `root://` URLs |
@@ -65,7 +66,7 @@ Failures that cluster at the Vienna site (Hephy-Vienna) while other sites succee
 
 ## Escalate
 
-Hand over to `cbe-ticket` with:
+Problems with CRAB, JAliEn, or gbasf2 themselves go to the experiment's support channels. For problems with the site, the compute element, or EOS, hand over to `cbe-ticket` with:
 
 - the exact command and complete error output;
 - `voms-proxy-info --all` output (it contains no secret), and the DN;

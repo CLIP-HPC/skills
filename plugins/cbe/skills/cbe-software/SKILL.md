@@ -1,6 +1,6 @@
 ---
 name: cbe-software
-description: "Find, load, install, or run software on CBE.next using Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, collections), CVMFS repositories (Galaxy BioContainers, Refgenie reference data, CERN unpacked images), SBGrid in /programs, Apptainer, uv Python environments, or conda from the global Miniforge (conda-forge only, never Anaconda or Miniconda). Use when asking whether a tool is available, choosing a software source, resolving an environment, building a container outside the cluster, running bring-your-own-license software such as MATLAB, or requesting missing software."
+description: "Find, load, install, or run software on CBE.next using Lmod modules (EESSI/2025.06 and CBE/2025.06 stacks, module spider, collections), CVMFS repositories (Galaxy BioContainers, Refgenie reference data, CERN unpacked images), SBGrid in /programs, Apptainer, uv Python environments, or conda from the global Miniforge (conda-forge only, never Anaconda or Miniconda). Use when asking whether a tool is available, choosing a software source, resolving an environment, building an Apptainer image from a definition file, running bring-your-own-license software such as MATLAB, or requesting missing software."
 metadata:
   display-name: "CBE software"
   short-description: "Find and configure software on CBE.next"
@@ -9,7 +9,7 @@ metadata:
 
 # Software on CBE.next
 
-Facts below reflect the docs as of 2026-10-19 and the tools in `/software/system/utils/bin` as of 2026-10-23. Prefer what the cluster reports (`module spider`, directory listings) over this file.
+Facts below reflect the docs as of 2026-10-29 and the tools in `/software/system/utils/bin` as of 2026-10-23. Prefer what the cluster reports (`module spider`, directory listings) over this file.
 
 ## Where software comes from
 
@@ -44,7 +44,7 @@ Facts below reflect the docs as of 2026-10-19 and the tools in `/software/system
 - Prefer `rg` and `fd` over `grep -r` and `find`, but give them a narrow starting directory. Never sweep all of `/groups`, `/scratch`, or `/cvmfs`: that loads shared storage for everyone.
 - `btop`, `btm`, `lazygit`, `yazi`, and `fzf` need an interactive terminal. Suggest them to the user; don't run them from a non-interactive agent shell.
 
-Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module; building Apptainer images from a definition file on CBE.next (*not available yet*); `xrdcp`/`xrdfs` and the VOMS tools may not be installed yet (COPS-232; see the `grid` plugin).
+Not provided: Anaconda, Miniconda, and micromamba; Podman; a MATLAB module. The XRootD tools (`xrdcp`, `xrdfs`) and the VOMS tools are installed on the login and compute nodes; see the `grid` plugin.
 
 ## Search in this order
 
@@ -104,16 +104,27 @@ apptainer pull docker://docker.io/library/python:3.13-slim
 apptainer exec python_3.13-slim.sif python --version
 ```
 
-- Put the cache and build temp on `$SCRATCHDIR`, so they don't fill the `$HOME` quota. Keep long-lived `.sif` files in `$HOME` or `/groups`, because `/scratch` deletes files after 28 days.
+- Put the cache and build temp on `$SCRATCHDIR`, so they don't fill the `$HOME` quota. Inside a job, `APPTAINER_TMPDIR` can also point to the per-job `$TMPDIR`. Keep long-lived `.sif` files in `$HOME` or `/groups`, because `/scratch` deletes files after 28 days.
 - Home and the working directory are bind-mounted automatically. Bind other paths explicitly: `--bind /scratch/users/${USER}` or `--bind /groups/<group>`.
 - Images under `/cvmfs` run directly. Don't copy them.
 - GPUs: use `--nv`. Never use `--cleanenv` on GPU nodes; it drops `CUDA_VISIBLE_DEVICES`. If a clean environment is needed, use `--env CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}"`.
 
 ### Use your own image
 
-Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay. You can't build images from a definition file on CBE.next yet. Instead:
+Build the image on CBE.next from a definition file, without root, inside a Slurm job and with the cache and build directories set as above:
 
-- build the image outside CBE.next, push it to a registry, and pull it: `apptainer pull my-tool_1.0.sif docker://<registry>/<namespace>/my-tool:1.0`;
+```bash
+apptainer build my-tool.sif my-tool.def
+```
+
+- The `%post` section runs under `fakeroot`, which needs glibc 2.38 or newer in the base image: Debian 13 (`debian:trixie`), Ubuntu 24.04, or RHEL, AlmaLinux, or Rocky Linux 10. Definition files without `%post` work with any base image. Check a base image with `apptainer exec docker://<image> ldd --version`.
+- With an older base image, the build fails in `%post` with `version 'GLIBC_2.38' not found` and `fakeroot: error while starting the 'faked' daemon`.
+- Not possible without root: Alpine and other musl-based images, `Bootstrap: yum`, `dnf`, or `debootstrap` (use `Bootstrap: docker` with a base image), `--network` options, and `%post` steps that need real root or several user IDs.
+- Never use `--ignore-fakeroot-command`: package installs in `%post` then fail silently, and the image misses them.
+
+For the cases above that don't work, or to reuse an existing image, Apptainer runs images from any OCI registry, such as Docker Hub, GitHub, or Quay:
+
+- build the image elsewhere, push it to a registry, and pull it: `apptainer pull my-tool_1.0.sif docker://<registry>/<namespace>/my-tool:1.0`;
 - or let IT build it from a Git repository: see the "Singularity image builds" and "Docker image builds" pages under `hosting-publishing/build-automation/` in the docs.
 
 ## Python and conda

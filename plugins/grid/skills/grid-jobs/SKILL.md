@@ -9,7 +9,7 @@ metadata:
 
 # Grid jobs and the Vienna Tier-2
 
-Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28 and GOCDB as of 2026-10-28. Items marked *not available yet* may have changed.
+Facts below reflect the docs.vbc.ac.at pages as of 2026-10-29 and GOCDB as of 2026-10-28. Items marked *not available yet* may have changed.
 
 ## How grid jobs reach the Vienna BioCenter
 
@@ -18,13 +18,11 @@ Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28 and GOCDB as of 20
 - **Users don't submit to the partition `grid` with `sbatch`.** It only receives jobs routed by the CE. A user's job reaches it through the experiment's workload management system, whose pilots run there.
 - Each experiment names the site differently:
 
-  | Experiment | Site name | Used in |
-  |---|---|---|
-  | CMS | `T2_AT_Vienna` | CRAB `config.Site.whitelist`, CMS site status |
-  | ALICE | `Vienna` | JAliEn, MonALISA |
-  | Belle II | `LCG.HEPHY.at` | DIRAC, gbasf2 |
-
-  The VBC docs still mark the ALICE and Belle II names for confirmation (COPS-232); if a tool rejects one, report it rather than guessing another.
+  | Experiment | Site name | Used in | Site monitoring |
+  |---|---|---|---|
+  | CMS | `T2_AT_Vienna` | CRAB `config.Site.whitelist`, CMS site status | https://cmssst.web.cern.ch/siteStatus/detail.html?site=T2_AT_Vienna |
+  | ALICE | `Vienna` | JAliEn, MonALISA | https://alimonitor.cern.ch/ (grid certificate required) |
+  | Belle II | `LCG.HEPHY.at` | DIRAC, gbasf2 | Belle II DIRAC web portal (grid certificate required) |
 - The site also runs an ALICE VO-box (`alien.grid.vbc.ac.at`) and Frontier squid caches. These are site services, not something users configure.
 
 So there are two paths, and the first decision is which one the user needs:
@@ -120,4 +118,4 @@ Legacy CBE scripts with `--qos=grid_generic` don't move to CBE.next as `sbatch` 
 - https://docs.vbc.ac.at/research-computing/cbe/cluster-resources/index.md (partition `grid`)
 - https://docs.vbc.ac.at/research-computing/cbe/grid/index.md
 - GOCDB endpoints of Hephy-Vienna: https://goc.egi.eu/gocdbpi/public/?method=get_service_endpoint&sitename=Hephy-Vienna
-- Upstream: CRAB (https://twiki.cern.ch/twiki/bin/view/CMSPublic/CRAB3ConfigurationFile), JAliEn (https://jalien.docs.cern.ch/), HTCondor-CE (https://htcondor.com/htcondor-ce/).
+- Upstream: CRAB (https://cmscrab.docs.cern.ch/), JAliEn (https://jalien.docs.cern.ch/), HTCondor-CE (https://htcondor.github.io/htcondor-ce/).

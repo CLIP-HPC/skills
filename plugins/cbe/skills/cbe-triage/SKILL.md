@@ -38,7 +38,7 @@ scontrol show job <job-id>     # only while Slurm still knows the job
 | `State` / signal | Usual meaning | Check |
 |---|---|---|
 | `OUT_OF_MEMORY`, or `oom-kill` in the log | Memory exceeded the request | `MaxRSS` against `ReqMem`; growth with input size |
-| `TIMEOUT` | Hit `--time` | Did it make progress? Compare `Elapsed` with earlier runs |
+| `TIMEOUT` | Hit `--time` | Did it make progress? Compare `Elapsed` with earlier runs. More time may need another QOS: `short` (the default) allows 8 hours, `medium` 2 days, `long` 14 days, and a larger `--time` is rejected. `salloc` and `srun` without a batch script end after 4 hours whatever `--time` says |
 | `FAILED` with an exit code | The application exited non-zero | The log's first error; the exit code's meaning for this tool |
 | `CANCELLED` | Cancelled by the user, a dependency, or an admin | `sacct` and the log; whether the user cancelled it |
 | `NODE_FAIL`, or `BOOT_FAIL` | Node problem | `NodeList`; whether other jobs on that node failed at the same time |
@@ -70,14 +70,14 @@ Check whether similar jobs from the same user or group failed at the same time a
 
 | Suspect | Evidence to look for |
 |---|---|
-| Quota exceeded | `Disk quota exceeded` or `No space left on device` in logs; `myquota` (all filesystems at once) |
+| Quota exceeded | `Disk quota exceeded` or `No space left on device` in logs; `myquota` (all filesystems at once). Check the file count too: a home directory with many small files, such as an Apptainer cache, can hit the file limit before the space quota |
 | `/dev/shm` use | Out-of-memory although the program's own memory looks fine: files in `/dev/shm` count against `--mem` |
-| Scratch deletion | Missing inputs on `/scratch` older than 28 days, or missing staged data in `/clustertmp` |
-| Permissions | `Permission denied` on `/groups`. Remember that `chmod` is ignored; access comes from ACLs, so it isn't fixable by the agent |
+| Scratch deletion | Missing inputs on `/scratch` older than 28 days, or missing staged data in `/clustertmp` unmodified for 28 days |
+| Permissions | `Permission denied` on `/groups`. Remember that `chmod` is ignored; access comes from ACLs, so it isn't fixable by the agent. The group's admins (its `.full` group) can change it, or the user requests it at the IT Servicedesk |
 | Node failure | `NODE_FAIL`; the same node in several failing jobs; `sinfo -R` lists down or drained nodes with reasons; `pestat -p <partition>`; `showevents -w <node> -t 3days` for the node's state changes around the failure |
 | Network or storage I/O | Stale file handle, I/O errors, timeouts, MPI/UCX/NCCL connection errors; whether several jobs failed together |
-| Maintenance | Job ended or stayed pending around an announced maintenance; CBE.next change notes |
-| GPU not visible | `CUDA_VISIBLE_DEVICES` empty inside a container (`--cleanenv` on GPU nodes), or an untyped `--gres` gave the wrong GPU type |
+| Maintenance | Job ended or stayed pending around an announced maintenance; CBE.next change notes. Pending with `ReqNodeNotAvail` because `--time` would run into the monthly maintenance reservation: a shorter `--time` lets it start before |
+| GPU not visible | Container started without `--nv`; `CUDA_VISIBLE_DEVICES` empty inside a container (`--cleanenv` on GPU nodes); or an untyped `--gres` gave the wrong GPU type |
 | Environment drift | Modules loaded in `.bashrc`, legacy CBE paths (`/scratch-cbe`, `/software`), legacy `/scratch` meaning `/clustertmp` |
 | Licence | License-server connection errors (bring your own license) |
 
@@ -136,7 +136,7 @@ What to look for:
 |---|---|
 | Fewer busy threads than allocated CPUs | Thread setting too low, or a serial bottleneck |
 | More runnable threads than CPUs in `cpuset.cpus.effective` | Oversubscription |
-| `memory.current` close to `memory.max`, or rising `oom` counts | Memory pressure, about to be OOM-killed |
+| `memory.current` close to `memory.max`, or a rising `oom_kill` count in `memory.events` | Memory pressure, about to be OOM-killed |
 | Processes in state `D` for long periods | Waiting on I/O (storage or network) |
 | Low CPU and no I/O | Waiting on a lock, network, licence server, or deadlocked |
 | GPU memory used but low utilisation | CPU or I/O bound feeding the GPU |
@@ -165,7 +165,7 @@ If you found the cause:
 Propose a support ticket when:
 
 - the cause is still unclear after the steps above;
-- it is on the system side (node, network, or storage faults; quota changes; permissions; striping);
+- it is on the system side (node, network, or storage faults; quota changes; striping);
 - it needs an admin (`JobHeldAdmin`, a restore from backup).
 
 Write and open it with the `cbe-ticket` skill, which lists the facts to include. Missing software is a request through the `cbe-software` skill.

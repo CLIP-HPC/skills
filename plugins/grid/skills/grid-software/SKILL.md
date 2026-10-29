@@ -9,7 +9,7 @@ metadata:
 
 # Grid experiment software from CVMFS
 
-Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28. Items marked *not available yet* may have changed.
+Facts below reflect the docs.vbc.ac.at pages as of 2026-10-29. Items marked *not available yet* may have changed.
 
 The grid experiments publish their software and conditions data in CernVM-FS. CBE.next mounts the repositories on all nodes under `/cvmfs`, read-only. The experiment's setup scripts are the supported way in. Don't copy releases out of CVMFS, and don't build experiment stacks from source when a CVMFS release exists.
 
@@ -77,13 +77,13 @@ Choose the `<platform>` directory that matches the host OS (`cat /etc/os-release
 
 ## Grid client tools
 
-For `xrdcp`, `xrdfs`, `voms-proxy-init`, and `voms-proxy-info`, the VBC docs describe them, but their installation on CBE.next is still being checked (COPS-232). The `eos` client is installed on the login nodes. Check before using any of them:
+`xrdcp`, `xrdfs`, `voms-proxy-init`, and `voms-proxy-info` are installed on the CBE.next login and compute nodes; the `eos` client is installed on the login nodes. Other clients, such as `gfal-copy` or `alien.py`, may come only from an experiment environment. Check before using them:
 
 ```bash
 command -v xrdcp xrdfs voms-proxy-init voms-proxy-info gfal-copy eos alien.py
 ```
 
-Experiment environments often bring their own clients (ALICE `xjalienfs` includes XRootD; CMSSW includes `xrdcp`). Use them inside that environment, and say where the tool came from. If a tool is still missing, tell the user it isn't installed on CBE.next yet and point to the HPC Servicedesk, instead of building it in `$HOME`.
+Experiment environments often bring their own clients (ALICE `xjalienfs` includes XRootD; CMSSW includes `xrdcp`). Use them inside that environment, and say where the tool came from. If a tool is missing, tell the user it isn't installed on CBE.next and point to the HPC Servicedesk, instead of building it in `$HOME`.
 
 ## In jobs
 
