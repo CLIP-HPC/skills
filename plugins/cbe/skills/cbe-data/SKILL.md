@@ -17,11 +17,29 @@ Facts below reflect the docs as of 2026-10-29 and the cluster tools as of 2026-1
   - `rm -r`, `find -delete`, `mv` onto existing names, and shell redirection (`>`) onto existing files;
   - `rsync --delete` and any `--delete-*` option;
   - `rclone sync`;
-  - `azcopy sync` with `--delete-destination`.
+  - `azcopy sync` with `--delete-destination`;
+  - in-place edits (`sed -i`, `perl -i`), archive extraction over existing files (`tar -x`, `unzip -o`), copies that replace existing files (`cp`, `rsync`), and `git clean`, `git reset --hard`, or `git checkout --` in a repository under `/groups`;
+  - the same commands sent through `ssh cbe.next '...'`, and your own file-writing tools on existing files.
 - Group data belongs to the whole group. A path inside someone else's `user/<name>` folder, or in `lab`, isn't yours to clean up.
 - Never use a `/groups` path as the target of a destructive glob or variable that might be empty, for example `rm -rf "$OUTDIR"/`. Check the variable first.
 - Snapshots and backups exist, but they don't make deletion safe: restores take time, and the newest changes may not be captured yet.
-- When installed as a Claude Code plugin, `cbe` also adds a hook that asks the user before Bash commands that delete, move, or overwrite paths under `/groups`. It is a safety net, not a substitute for asking first: if it prompts, you skipped a step.
+- When installed as a Claude Code plugin, `cbe` also adds a hook that asks the user before commands and file edits that delete, move, or overwrite paths under `/groups`, also when they run through `ssh`. It is a safety net, not a substitute for asking first: if it prompts, you skipped a step.
+
+### Before deleting in `/groups`
+
+Show the user what the deletion would remove, read-only, and wait for a yes for the exact paths:
+
+```bash
+du -sh <path>                                       # size
+find <path> -type f | head -100000 | wc -l          # file count, capped
+stat -c '%U %y' <path>                              # owner and last change
+find <path> -type f -newermt "$(date -d '-1 hour' '+%F %T')" | head   # changed in the last hour
+ls /groups/.snapshot | sort -t. -k2 | tail -3       # newest snapshots
+```
+
+- Tell the user plainly when files changed after the newest snapshot: those changes can't be restored. Recovery works from `/groups/.snapshot/<snapshot-name>/<group>/<path>` (see Restore files), and from backup for 180 days.
+- Point out anything that looks important, and anything owned by someone else.
+- Offer a soft delete as the default: rename the target, for example `mv <path> <path>.to-delete-$(date +%F)`, and remove it only after the next hourly snapshot exists and the user has checked that nothing is missing. The renamed data still counts against the group quota until then.
 - In `/clustertmp`, delete only what you staged yourself in this session. It's a shared area that all campus users can write to.
 - Never leave the only copy of anything important on `/scratch`, in per-job `/tmp` or `/dev/shm`, or in `/clustertmp`. All of them are deleted automatically.
 - Never put passwords, tokens, keys, or SAS URLs in job scripts or logs.

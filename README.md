@@ -110,9 +110,12 @@ claude plugin update cbe@clip-hpc
 claude plugin update grid@clip-hpc    # if installed
 ```
 
-In Claude Code, the plugin also adds a hook that asks before Bash commands that
-delete, move, or overwrite files under `/groups`. It runs only where `/groups`
-exists and uses `python3` from `PATH`. Set `CBE_GROUPS_GUARD=off` to disable it,
+In Claude Code, the plugin also adds a hook that asks before Bash commands and
+file edits that delete, move, or overwrite files under `/groups`. It also checks
+commands sent with `ssh <host> '...'`, so it protects the cluster when Claude Code
+runs on your own computer. The prompt lists the affected paths with their size,
+file count, owner, and whether they changed after the newest snapshot. It uses
+`python3` from `PATH` and does nothing without it. Set `CBE_GROUPS_GUARD=off` to disable it,
 or `CBE_PROTECTED_PATHS` to a colon-separated list of other roots to protect.
 Codex and the skill-only installation don't include the hook. The `grid`
 plugin has no hook.
