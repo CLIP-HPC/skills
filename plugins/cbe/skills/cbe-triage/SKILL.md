@@ -100,33 +100,33 @@ Either way, your session may count against the job's resources. Keep it light an
 
 **Identify the job's processes exactly.** Several jobs from the same and other users share a node, so never pick processes by name, user, or `top` ranking alone.
 
-Primary method: ask Slurm on the node.
+Primary method: ask Slurm on the node. The node's host name differs from its Slurm node name, so set `SLURMD_NODENAME`; without it, `scontrol listpids` fails with `does not exist on node (null)`.
 
 ```bash
-scontrol listpids <job-id>          # PIDs of the job on this node, with their step (batch, 0, 1, ...)
-scontrol listpids <job-id>.<step>   # one step only
+SLURMD_NODENAME=$(hostname -s) scontrol listpids <job-id>          # PIDs of the job on this node, with their step (batch, 0, extern, ...)
+SLURMD_NODENAME=$(hostname -s) scontrol listpids <job-id>.<step>   # one step only
 ```
 
 Use these PIDs for all further checks.
 
-Alternative and monitoring source: the job's cgroup. Each job has its own cgroup for resource isolation. Use it to confirm a PID, or when `scontrol listpids` isn't available. It's also where the memory, CPU, and OOM figures below come from.
+Monitoring source: the job's cgroup. Each job has its own cgroup for resource isolation; it's where the memory, CPU, and OOM figures below come from. Its directory has an internal name, not the job ID, so don't search for it by name. Take it from a PID that `listpids` reported:
 
 ```bash
-cat /proc/<pid>/cgroup                                         # the path must contain job_<job-id>
-find /sys/fs/cgroup -maxdepth 6 -type d -name "job_<job-id>"   # the job's cgroup directory
+cat /proc/<pid>/cgroup                                                  # e.g. 0::/system.slice/slurmstepd.scope/<internal-id>/step_0/user/task_0
+jobdir=/sys/fs/cgroup$(cut -d: -f3 /proc/<pid>/cgroup | sed 's#/step_.*##')   # the job's cgroup directory
 ```
 
-Step directories inside the job cgroup (`step_batch`, `step_0`, `step_extern`, and so on) separate the batch script from `srun` steps.
+Two processes belong to the same job only if their cgroup paths match up to `/step_`. Step directories inside the job cgroup (`step_batch`, `step_0`, `step_extern`, and so on) separate the batch script from `srun` steps; an SSH session on the node joins the job in `step_extern`.
 
 **Observe.** Use read-only, sampled commands, never continuous loops left running:
 
 ```bash
 ps -o pid,ppid,stat,pcpu,pmem,rss,nlwp,etime,args -p <pid,pid,...>
 top -b -n 3 -d 5 -H -p <pid>                             # threads of one process, 3 samples
-cat <job-cgroup>/memory.current <job-cgroup>/memory.max  # memory used vs limit (cgroup v2)
-cat <job-cgroup>/memory.events                           # oom and oom_kill counts
-cat <job-cgroup>/cpu.stat                                 # CPU usage and throttling
-cat <job-cgroup>/cpuset.cpus.effective                    # CPUs the job may use
+cat "$jobdir"/memory.current "$jobdir"/memory.max        # memory used vs limit (cgroup v2)
+cat "$jobdir"/memory.events                              # oom and oom_kill counts
+cat "$jobdir"/cpu.stat                                   # CPU usage and throttling
+cat "$jobdir"/cpuset.cpus.effective                      # CPUs the job may use
 nvidia-smi --query-compute-apps=pid,used_memory --format=csv   # match GPU PIDs to the job's PIDs
 ```
 

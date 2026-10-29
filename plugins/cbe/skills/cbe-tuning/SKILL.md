@@ -50,7 +50,7 @@ Look for:
 
 Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and set `--mem` explicitly. A request should fit comfortably in one node unless the job is genuinely multi-node.
 
-For a job that is running now, `psjob <job-id>` gives a first look at its processes from the login node. Then observe it on its compute node: threads actually busy, memory against the limit, processes waiting on I/O, and GPU utilisation. Follow `cbe-triage` step 4a. Identify the job's processes with `scontrol listpids <job-id>`, not by name, because other jobs share the node. The job's cgroup (`job_<job-id>`) gives the memory and CPU figures. Observe read-only, with a few samples.
+For a job that is running now, `psjob <job-id>` gives a first look at its processes from the login node. Then observe it on its compute node: threads actually busy, memory against the limit, processes waiting on I/O, and GPU utilisation. Follow `cbe-triage` step 4a. Identify the job's processes with `SLURMD_NODENAME=$(hostname -s) scontrol listpids <job-id>`, not by name, because other jobs share the node. The job's cgroup gives the memory and CPU figures; its directory has an internal name, so take it from one of those PIDs as `cbe-triage` shows. Observe read-only, with a few samples.
 
 ## 3. Choose optimisation levers
 
