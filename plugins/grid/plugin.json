@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "grid",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Agent skills for grid computing at the Vienna BioCenter: grid certificates and VOMS proxies, CVMFS experiment software, EOS and XRootD transfers, grid job submission to the Vienna Tier-2 (Hephy-Vienna), and failure triage.",
   "author": {
     "name": "CLIP-HPC"
