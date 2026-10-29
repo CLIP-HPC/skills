@@ -17,21 +17,24 @@ The goal is a ticket that support can act on without asking back. Many tickets l
 - **Propose one yourself** only when the problem can't be fixed with the user's own privileges, and say why. For example:
   - node faults: `NODE_FAIL`, the same node in several failures, a GPU missing on one node, a drained node that isn't in maintenance;
   - storage and mounts: I/O errors, stale file handles, missing CVMFS or `/groups` mounts, quota changes the user didn't make;
-  - access: `Permission denied` on `/groups` (ACLs; `chmod` doesn't help), account or default-account errors;
-  - admin actions: `JobHeldAdmin`, restore from backup older than the snapshots, enabling OpenOnDemand app development;
+  - access: account or default-account errors;
+  - admin actions: `JobHeldAdmin`, restore from backup older than the snapshots;
   - a cause that stays unclear after `cbe-triage`.
 - Proposing is not creating. Show the draft and create the ticket only after the user approves the text.
 
 ### Not a ticket
 
 - **A long queue wait alone.** Explain it with the `cbe-queue` skill. The exception is a suspected scheduler fault, for example:
-  - jobs held in `ReqNodeNotAvail` although no reservation covers their time window;
+  - jobs held in `ReqNodeNotAvail` for a long time although no maintenance or reservation covers their time window (the reason alone also covers down, drained, or reserved nodes);
   - `Resources` while the requested nodes are idle and not reserved, for hours;
-  - `sbatch` or `squeue` failing with `Socket timed out`, `Unable to contact slurm controller`, or similar errors, repeatedly;
+  - `sbatch` or `squeue` failing with `Socket timed out`, `Unable to contact slurm controller`, or similar errors, repeatedly, and not explained by the user's own frequent Slurm queries, which Slurm rate-limits;
   - jobs stuck in `COMPLETING` for a long time;
   - submissions refused for a queue limit the user didn't reach.
   If the user insists on a ticket about a normal wait, draft it with the evidence from `cbe-queue`, and say the likely answer.
 - Problems the user can fix: out of memory, wrong partition or QOS, a wrong path, a full quota of their own, environment setup. Fix them in the session with `cbe-triage` or `cbe-tuning`, and validate the fix with a small test job.
+- `Permission denied` on `/groups`: access comes from the folder's groups (ACLs), so `chmod` doesn't help. The group's admins (members of its `.full` group) can change permissions themselves; otherwise the user requests the change at the IT Servicedesk (https://vbc.atlassian.net/servicedesk/customer/portal/5/create/26), not with a CLIP ticket.
+- OpenOnDemand app development: it's enabled for every CBE.next account, so no request is needed.
+- Login failures from repeated retries, or a refused SSH certificate: repeated failed logins through the jump host can trigger a temporary network block. The user stops retrying, waits a few minutes, and tries once with a fresh certificate. If it still fails, or `step ssh login` doesn't end with `✔ CA` and `✔ SSH Agent: yes`, they contact the IT Servicedesk, which handles the network side and the certificate authority. An unexpected host key prompt goes to the CBE.next MS Teams channel; never accept it.
 - A missing software installation: request type **CLIP Software** (see the `cbe-software` skill). Account and access requests: **CLIP Account** (below).
 
 ## 1. Collect the facts
@@ -65,13 +68,14 @@ Gather what you can yourself with read-only commands, in as few SSH calls as pos
 - the session ID and its Slurm job ID from **My Interactive Sessions**;
 - the session log shown by OpenOnDemand, especially its last lines;
 - what the browser shows (exact message), the browser and operating system, and whether another browser or a private window behaves the same;
-- whether a smaller session, or a fresh session after ending the failed one, starts.
+- whether a smaller session, or a fresh session after ending the failed one, starts. Sessions run in the `interactive` QOS (per user at most 5 jobs, 48 CPUs, 2 GPUs, and 1,000 GB), and the working directory must exist and be writable: rule out both before drafting.
 
 **Login and SSH:**
 
 - client operating system, and native terminal or WSL;
 - network location: on campus, VPN, or elsewhere;
-- `step ssh login vbc-cbe` and `ssh-add -l` results;
+- `step ssh login vbc-cbe` result, with its `✔ CA` and `✔ SSH Agent` lines, and `ssh-add -l`;
+- the certificate's `Valid:` line from `ssh-add -L | grep vbc-cbe | ssh-keygen -Lf /dev/stdin`;
 - the last relevant lines of `ssh -v <host>`, without keys or certificates.
 
 **Storage and transfers:**
@@ -79,7 +83,7 @@ Gather what you can yourself with read-only commands, in as few SSH calls as pos
 - the path and the operation, and the exact error;
 - the job ID, if a job hit it;
 - the approximate data size and file count;
-- whether a small test file works, and `quota -s` output.
+- whether a small test file works, and `myquota` output.
 
 **Suspected scheduler fault:** the pending job IDs with `squeue -j <ids> -o "%.14i %.9P %.10q %.11l %.20V %R"`, the time the state began, the exact error messages from Slurm commands, and whether other users report the same.
 

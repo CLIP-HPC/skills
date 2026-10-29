@@ -9,7 +9,7 @@ metadata:
 
 # Data and filesystems on CBE.next
 
-Facts below reflect the docs as of 2026-10-19 and the cluster tools as of 2026-10-23. Items marked *not available yet* may have changed.
+Facts below reflect the docs as of 2026-10-29 and the cluster tools as of 2026-10-23. Items marked *not available yet* may have changed.
 
 ## Hard rules
 
@@ -28,18 +28,18 @@ Facts below reflect the docs as of 2026-10-19 and the cluster tools as of 2026-1
 
 ## Filesystems
 
-`myquota` shows your usage and quota on `/groups`, `/scratch`, `/clustertmp`, and `$HOME` in one report, including file counts and filesystem totals. Run it before large writes or transfers, and when a job reports `Disk quota exceeded`.
+`myquota` shows your usage and quota on `/groups`, `/scratch`, `/clustertmp`, and `$HOME` in one report, including file counts and filesystem totals. Run it before large writes or transfers, and when a job reports `Disk quota exceeded`; a home directory with many small files can reach the file limit before the space quota. Don't scan a whole directory tree with `du` for this.
 
-| Path | What it is | Use for | Lifetime and protection | Usage check |
-|---|---|---|---|---|
-| `$HOME` (`/users/$USER`) | CBE.next home, separate from legacy CBE | scripts, config, environments, small files | persistent; hourly, daily, and weekly snapshots in `/users/.snapshot`; backup kept 180 days | `quota -s` |
-| `$SCRATCHDIR` (`/scratch/users/$USER`) | all-flash BeeGFS, about 1,200 TB | large active job data and intermediates | files deleted after 28 days; no snapshots or backup | `du -sh $SCRATCHDIR` |
-| `/tmp` (`$TMPDIR`) and `/var/tmp` inside a job | private per-job directories on the BeeGFS behind `/scratch` | a job's temporary files | deleted when the job ends | — |
-| `/dev/shm` inside a job | private per-job RAM filesystem; counts against `--mem` | many small temporary files, small caches read repeatedly | deleted when the job ends | — |
-| `/groups/<group>` | campus group storage, also reachable from workstations (`\\storage.vbc.ac.at\groups\<group>`) | permanent research data, shared input, retained results | persistent; hourly snapshots in `/groups/.snapshot`; backup kept 180 days; quota per group | `quota -s`, or https://apps.vbc.ac.at/quotas/ |
-| `/clustertmp` | campus exchange share (`\\storage.vbc.ac.at\clustertmp`), 250 TB | exchanging data with workstations or other groups; not job output | no backup; unmodified data deleted automatically after 28 days | — |
-| `/resources` | curated reference data, read-only | genomes and indexes | — | — |
-| `/eos`, `/cvmfs`, `/programs` | EOS (HEP users), software and reference repositories, SBGrid | see the `cbe-software` skill for `/cvmfs` and `/programs` | — | — |
+| Path | What it is | Use for | Lifetime and protection |
+|---|---|---|---|
+| `$HOME` (`/users/$USER`) | CBE.next home, separate from legacy CBE | scripts, config, environments, small files | persistent; hourly, daily, and weekly snapshots in `/users/.snapshot`; backup kept 180 days |
+| `$SCRATCHDIR` (`/scratch/users/$USER`) | all-flash BeeGFS, about 1,200 TB | large active job data and intermediates | files deleted after 28 days; no snapshots or backup |
+| `/tmp` (`$TMPDIR`) and `/var/tmp` inside a job | private per-job directories on the BeeGFS behind `/scratch` | a job's temporary files | deleted when the job ends |
+| `/dev/shm` inside a job | private per-job RAM filesystem; counts against `--mem` | many small temporary files, small caches read repeatedly | deleted when the job ends |
+| `/groups/<group>` | campus group storage, also reachable from workstations (`\\storage.vbc.ac.at\groups\<group>`) | permanent research data, shared input, retained results | persistent; hourly snapshots in `/groups/.snapshot`; backup kept 180 days; quota per group (also at https://apps.vbc.ac.at/quotas/) |
+| `/clustertmp` | campus exchange share (`\\storage.vbc.ac.at\clustertmp`), 250 TB | exchanging data with workstations or other groups; not job output | no backup; unmodified data deleted automatically after 28 days; open to all campus users by default, so restrict permissions for sensitive data |
+| `/resources` | curated reference data, read-only | genomes and indexes | — |
+| `/eos`, `/cvmfs`, `/programs` | EOS (HEP users), software and reference repositories, SBGrid | see the `cbe-software` skill for `/cvmfs` and `/programs` | — |
 
 ## Performance
 
@@ -101,7 +101,7 @@ ls /users/.snapshot
 | Between filesystems on CBE.next, small data | `rsync --archive --partial` or `cp` | Run larger copies as a batch job, not on the login node. |
 | Campus workstation | No transfer needed | `/groups` and `/clustertmp` are the same shares as `\\storage.vbc.ac.at\...` and `smb://storage.vbc.ac.at/...`. |
 | Laptop or other computer | `rsync` or `scp` through `cbe.next` | Watch trailing slashes; `rsync --partial` resumes. |
-| Other institutes, large data | Globus | No Globus client on CBE.next. The collection name isn't published yet; ask the HPC Servicedesk. |
+| Laptop, workstation, or other institutes, large data | Globus | Sign in at https://app.globus.org/ with the organization **Vienna Biocenter**. The CBE.next collection is **Vienna BioCenter Scratch** and exposes only `/clustertmp`: transfer there, then move the data on the cluster before the 28-day cleanup. A laptop needs Globus Connect Personal running. No Globus client on CBE.next itself. |
 | Azure archive (cold data) | AzCopy | See below. |
 | External collaborators, small data | ACOnet FileSender (https://filesender.aco.net/) | Browser-based; up to 90 files and 250 GB per transfer. |
 | S3, Azure Blob, SharePoint/OneDrive, WebDAV, SFTP | `rclone` | Configure a remote once with `rclone config` (stored in `$HOME`). Use `rclone copy`, run large copies as batch jobs, and verify with `rclone check`. `rclone sync` deletes files at the destination: dry-run first (`--dry-run`) and get approval. |
@@ -113,10 +113,11 @@ Before a large transfer, confirm the source, destination, and free quota. After 
 
 - Each group has its own Azure archive blob; IT provides the URL.
 - `azcopy` is on every user's `PATH`; no module or own installation is needed.
-- Authentication is interactive (a device code entered in a browser) and is needed for every AzCopy command. So the transfer runs in an interactive `srun` job inside a `tmux` session, and the user must complete the sign-in. You can prepare the commands but can't sign in for them.
+- Authentication is interactive (a device code entered in a browser) and is needed for every AzCopy command. So the transfer runs in an interactive job (`salloc --time=... --cpus-per-task=16 --mem-per-cpu=2G`) inside a `tmux` session, and the user must complete the sign-in. Interactive jobs end after at most 4 hours, whatever `--time` says, so split long transfers or resume them with `azcopy jobs resume`. You can prepare the commands but can't sign in for them.
 - Use `azcopy sync <folder> <blob-url> --put-md5`. Check `Final Job Status` and resume failures with `azcopy jobs resume <id>`.
 - About 1 TB in 30 minutes was measured with mid-sized files.
 - Archived data can't be renamed or moved. Retrieving it needs rehydration by IT, which takes up to 15 hours. Downloads are expensive: a full download costs about a year of storage.
+- No backup of the archive: deleted data is kept only 7 more days, and deleting can cost extra. Symlinks aren't supported: valid ones are uploaded as files (doubling the space), broken ones cause errors.
 - Don't zip files before uploading unless they are very small and numerous.
 
 ## When to stop and hand back to the user

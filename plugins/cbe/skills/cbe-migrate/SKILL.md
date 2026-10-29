@@ -11,7 +11,7 @@ metadata:
 
 Legacy CBE shuts down on 2026-12-18. After that, data that exists only on legacy CBE is gone, including legacy home directories and `/scratch-cbe`. This skill covers translating and validating workloads. For general CBE.next usage, use the `cbe-next` skill; for software replacements, `cbe-software`; for filesystems and transfers, `cbe-data`.
 
-Facts below reflect the docs as of 2026-10-19. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
+Facts below reflect the docs as of 2026-10-29. Items marked *not final* may have changed. Prefer what CBE.next reports (`sinfo`, `module spider`, `showuserlimits`).
 
 ## How to work
 
@@ -36,8 +36,8 @@ Don't assume you can reach both clusters from one session. Check which host you'
 |---|---|
 | `ssh cbe.vbc.ac.at` | `ssh cbe.next` |
 | `clip-login-0/1.cbe.vbc.ac.at` | the `cbe.next` alias; don't hardcode login node names |
-| VPN from outside campus | jump host: `ssh -P vbc-jump-ext cbe.next` on managed devices |
-| password or key login | 16-hour SSH certificate: the user runs `step ssh login vbc-cbe` |
+| VPN from outside campus | jump host: `ssh -P vbc-jump-ext cbe.next` on managed devices; on unmanaged devices a `Host` block with `ProxyJump sshjump.vbc.ac.at` and `User <vbc user name>` (see the SSH access page) |
+| password or key login | 16-hour SSH certificate: the user runs `step ssh login vbc-cbe`; unmanaged devices need the one-time `step` installation and CA bootstrap, then `step ssh login --provisioner=VBC_user vbc-cbe` |
 
 Update hostnames in local SSH configs, scripts, and group documentation too.
 
@@ -114,7 +114,7 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | `ml load <name>/<version>` | Same Lmod syntax, but module names and versions differ. Check each one. |
 | saved module collections (`module restore`) | Not portable. Rebuild them with `module save`. |
 | conda, mamba, micromamba environments | Use the global Miniforge on CBE.next (conda-forge only). Re-create environments from an export (below). For Bioconda tools, the prebuilt images in `/cvmfs/singularity.galaxyproject.org/all/` are an alternative. Python-only projects can move to `uv`. |
-| Singularity containers | `singularity` is an alias for Apptainer 1.5.3. Rebuild images that depend on legacy paths, drivers, MPI, or module trees. Use `--nv` for GPUs, never `--cleanenv` on GPU nodes. |
+| Singularity containers | `singularity` is an alias for Apptainer 1.5.3. Rebuild images that depend on legacy paths, drivers, MPI, or module trees; images can be built on CBE.next from a definition file without root (see `cbe-software`). Use `--nv` for GPUs, never `--cleanenv` on GPU nodes. |
 | MATLAB module | No module. Bring your own license: the user installs MATLAB or uses a container, and `MLM_LICENSE_FILE` goes in the job script. |
 | private copies of reference genomes or indexes | Check `/resources` and `/cvmfs/data.galaxyproject.org` first. |
 

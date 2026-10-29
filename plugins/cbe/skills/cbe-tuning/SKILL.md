@@ -48,7 +48,13 @@ Look for:
 - **Queue wait** (`sacct ... --format=Submit,Start`). Long waits often mean oversized requests, not a busy cluster; to explain priority and fair-share, use the `cbe-queue` skill.
 - **Variation** across inputs of different sizes. That suggests sizing per input class.
 
-Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and set `--mem` explicitly. A request should fit comfortably in one node unless the job is genuinely multi-node.
+Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes have 192 cores, about 1.5 TB (7,600 MB per CPU by default), and 8 B200 GPUs, of which 4 are whole (about 180 GB each) and 4 are split into 28 MIG slices of 23 GB. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and request at least 700,000 MB per node with `--mem`, or Slurm rejects the job. No node uses SMT, so one Slurm CPU is one physical core. A request should fit comfortably in one node unless the job is genuinely multi-node.
+
+Limits that right-sizing must respect:
+
+- Time: without `--qos`, jobs get `short` (8 hours); `--qos=medium` allows 2 days and `--qos=long` 14 days. A `--time` above the QOS maximum is rejected at submission, so a longer measured runtime needs a QOS change, not only a larger `--time`.
+- Per-user QOS caps on CPUs, memory, and GPUs (for example `c_long` 230 CPUs, `g_long` 8 full B200s or 56 MIG slices) make jobs wait with `QOSMax*PerUser`; `showuserlimits` shows them.
+- `--mem=0` is rejected; request the measured memory.
 
 For a job that is running now, `psjob <job-id>` gives a first look at its processes from the login node. Then observe it on its compute node: threads actually busy, memory against the limit, processes waiting on I/O, and GPU utilisation. Follow `cbe-triage` step 4a. Identify the job's processes with `SLURMD_NODENAME=$(hostname -s) scontrol listpids <job-id>`, not by name, because other jobs share the node. The job's cgroup gives the memory and CPU figures; its directory has an internal name, so take it from one of those PIDs as `cbe-triage` shows. Observe read-only, with a few samples.
 
@@ -62,9 +68,9 @@ For a job that is running now, `psjob <job-id>` gives a first look at its proces
 | Job array | The same tool runs over many independent inputs (samples, chromosomes, chunks) | One task per input or per batch of inputs, `--array=0-N%K`, output subfolder per task; arrays go up to index 3000 |
 | Split or merge steps | One script mixes steps with very different needs | Separate jobs chained with `--dependency=afterok:<id>`, each sized for its own step |
 | Batch tiny tasks | Thousands of seconds-long tasks | Process several inputs per array task, to cut scheduling overhead |
-| Stage to `/scratch` | Heavy I/O directly on `/groups` | Stage input into `$SCRATCHDIR`, write intermediates to `$SCRATCHDIR` or per-job `/tmp`, copy results back |
+| Stage to `/scratch` | Heavy I/O directly on `/groups` | Stage input into `$SCRATCHDIR` (`stage` copies large folders as a parallel batch job), write intermediates to `$SCRATCHDIR` or per-job `/tmp`, copy results back |
 | Avoid `/groups` hot spots | Many tasks writing into one folder | One output subfolder per task |
-| File layout | Huge numbers of small files, or files over 1 TB | Pack small files (`tar`, HDF5, Zarr); split large outputs |
+| File layout | Huge numbers of small files, or files over 1 TB | Pack small files (`tar`, HDF5, Zarr); keep fewer than 10,000 files directly in one folder; split large outputs |
 | Wider striping | Very large files read or written by many nodes at once | Ask the user to request it from support |
 | GPU choice | GPU memory need is small, or the GPU is idle much of the time | Use a MIG slice (`gpu:nvidia_b200_1g.23gb`, 23 GB) instead of a full B200; set CPUs and memory explicitly |
 | Container overhead | Image pulled per job | Pull once to a `.sif` in `$HOME` or `/groups`, or use an image from `/cvmfs` |

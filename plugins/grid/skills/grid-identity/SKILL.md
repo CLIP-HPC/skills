@@ -9,7 +9,7 @@ metadata:
 
 # Grid certificates and VOMS proxies
 
-Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28. Items marked *not available yet* may have changed.
+Facts below reflect the docs.vbc.ac.at pages as of 2026-10-29. Items marked *not available yet* may have changed.
 
 The grid identity has three layers, and most problems come from mixing them up:
 
@@ -61,13 +61,7 @@ Check the experiment's own documentation for the current procedure, which change
 
 ## Create and inspect a proxy
 
-Run `voms-proxy-init` on a login node. For `voms-proxy-init` and `voms-proxy-info`, the VBC docs describe them, but their installation on CBE.next is still being checked (COPS-232). Check first:
-
-```bash
-command -v voms-proxy-init voms-proxy-info
-```
-
-If they're missing, an experiment environment from CVMFS may provide them (see `grid-software`); otherwise create the proxy on another machine with grid clients, or tell the user the tools aren't installed yet and point to the HPC Servicedesk. Don't install CA bundles or VOMS configuration by hand into `$HOME`.
+Run `voms-proxy-init` on a login node. `voms-proxy-init` and `voms-proxy-info` are installed on the CBE.next login and compute nodes, and the list of VOMS servers comes preconfigured from CVMFS, so `--voms <vo>` works without setup. Don't install CA bundles or VOMS configuration by hand into `$HOME`.
 
 ```bash
 voms-proxy-init --voms cms --valid 96:00     # or: alice, belle

@@ -9,14 +9,15 @@ metadata:
 
 # CBE.next
 
-Facts below reflect the CBE.next docs as of 2026-10-19 and the site tools as of 2026-10-23. Values marked *not configured yet* may have changed; prefer what the cluster reports (`sinfo`, `showuserlimits`, `module spider`).
+Facts below reflect the CBE.next docs as of 2026-10-29 and the site tools as of 2026-10-23. Values marked *not configured yet* may have changed; prefer what the cluster reports (`sinfo`, `showuserlimits`, `module spider`).
 
-Legacy CBE is a different system that shuts down on 2026-12-18. You can recognise it by the hostnames `cbe.vbc.ac.at`, `clip-login-0/1.cbe.vbc.ac.at`, and `clip-*` compute nodes, and by the `/scratch-cbe` path. Don't apply its instructions here. Watch out for `/scratch`: on legacy CBE it was the 30-day exchange area that is now `/clustertmp`, while on CBE.next `/scratch` is the job scratch (`$SCRATCHDIR`).
+Legacy CBE is a different system that shuts down on 2026-12-18. You can recognise it by the hostnames `cbe.vbc.ac.at`, `clip-login-0/1.cbe.vbc.ac.at`, and `clip-*` compute nodes, and by the `/scratch-cbe` path. Don't apply its instructions here. Watch out for `/scratch`: on legacy CBE it was the 28-day exchange area that is now `/clustertmp`, while on CBE.next `/scratch` is the job scratch (`$SCRATCHDIR`).
 
 ## Access
 
 - SSH alias `cbe.next` points to `cbenext.vbc.ac.at`. From outside the campus, go through the jump host `sshjump.vbc.ac.at` (`ssh -J sshjump.vbc.ac.at cbenext.vbc.ac.at`).
 - Authentication uses a 16-hour SSH certificate held in the user's `ssh-agent`. If SSH fails with an auth error, ask the user to run `step ssh login vbc-cbe` (unmanaged devices: `step ssh login --provisioner=VBC_user vbc-cbe`). You can't renew it yourself.
+- Don't retry a failing SSH login in a loop. Repeated failures through the jump host can trigger a temporary network block, so the error turns into a hang or timeout even after a new certificate. Stop, wait a few minutes, and try once with a fresh certificate; if it still fails, the user contacts the IT Servicedesk. If `step ssh login` doesn't end with `✔ CA` and `✔ SSH Agent: yes`, the CA refused the certificate, for example because the account isn't in the required group: also the IT Servicedesk.
 - If SSH asks to accept a host key, stop and don't accept it. Tell the user to report it in the CBE.next MS Teams channel.
 - Browser access: OpenOnDemand at https://ood.cbenext.vbc.ac.at/ offers Jupyter, RStudio Server, code-server, and a Remote Desktop (the replacement for XPRA). Use it for GUI and notebook work, not X11 in batch jobs.
 
@@ -45,7 +46,8 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 
 - Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Slurm rejects `m` jobs without an explicit memory request of at least 700,000 MB per node (`--mem`) or 21,875 MB per CPU (`--mem-per-cpu`), for example `--mem=2T`.
 - No node uses SMT, so one Slurm CPU is one physical core.
-- Slurm rejects `--mem=0` (all memory) on every partition, and `g` jobs that request no GPU.
+- Slurm rejects `--mem=0`, `--mem-per-cpu=0`, and `--mem-per-gpu=0` (all memory) on every partition, `g` jobs that request no GPU, jobs named `MAINT`, and jobs that pass more than 10 arguments, or more than 1,024 characters of arguments, to their job script.
+- A single-node `c` job above 10,000 MB per core gets a warning that suggests `m`; follow it only if the job needs more than a `c` node has.
 - The partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`) is open only to the grid experiment groups; `sinfo` doesn't show it to other users. It receives grid pilots routed by the Vienna Tier-2's compute element, not `sbatch` jobs from users. For grid submission, use the `grid-jobs` skill from the `grid` plugin, if installed.
 - Array indices: 0–3000.
 - Per-job temporary storage, both deleted when the job ends:
@@ -65,7 +67,7 @@ Partitions have no time limit; the QOS sets the maximum run time, per-user and t
 | `long` | 14 days | low | Jobs that can't be split or checkpointed |
 | `interactive` | 12 hours | highest | Interactive sessions; OpenOnDemand sessions get it automatically; per user at most 5 jobs, 48 CPUs, 2 GPUs (full and MIG together), and 1,000 GB memory |
 
-- Caps on running jobs: `c_short` 1,152 CPUs per user; `c_medium` 460 CPUs per user and 1,152 in total; `c_long` 230 per user and 460 in total; `g_medium` 16 full B200s, 112 MIG slices, and 768 CPUs; `g_long` 8 full B200s, 56 MIG slices, and 384 CPUs (for `g`, per user and in total alike). `rapid`, the other `short` levels, and all `m` levels have no caps.
+- Caps on running jobs: `c_short` 1,152 CPUs and about 4,300 GB per user; `c_medium` 460 CPUs and about 1,720 GB per user, 1,152 CPUs and about 4,300 GB in total; `c_long` 230 CPUs and about 860 GB per user, 460 CPUs and about 1,720 GB in total; `g_medium` 16 full B200s, 112 MIG slices, 768 CPUs, and about 5,740 GB; `g_long` 8 full B200s, 56 MIG slices, 384 CPUs, and about 2,870 GB (for `g`, per user and in total alike). `rapid`, the other `short` levels, and all `m` levels have no caps.
 - A job over its QOS time limit is rejected at submission. Jobs over a cap wait with `QOSMax*PerUser` (the user's own jobs) or `QOSGrp*` (the tier is full).
 - Read live values with `sacctmgr show qos format=Name,Priority,MaxWall,MaxTRESPU%60,GrpTRES%60` and `showuserlimits`.
 
@@ -99,6 +101,7 @@ Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2
   - `--gres=gpu:nvidia_b200:N`: full B200 (about 180 GB). Use it for multi-GPU/NCCL/NVLink work or large training runs.
   - `--gres=gpu:nvidia_b200_1g.23gb:1`: MIG slice (23 GB), for single-GPU inference, small models, or development. Never use several MIG slices for multi-GPU communication.
 - Set `--cpus-per-task` and `--mem` explicitly; a GPU request doesn't reserve them.
+- If you request GPUs per node, socket, or task (for example `--gpus-per-task`), also set `--ntasks`.
 - Check the current layout with `sinfo -p g -o "%N %G"`. Inside the job, verify with `nvidia-smi -L` and `echo $CUDA_VISIBLE_DEVICES`.
 - Containers: use `apptainer exec --nv`. Never use `--cleanenv` on GPU nodes; it drops `CUDA_VISIBLE_DEVICES`. If a clean environment is needed, pass `--env CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}"`.
 
@@ -106,20 +109,21 @@ Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2
 
 - Two sticky module stacks load at sign-in: `EESSI/2025.06` and `CBE/2025.06`. They survive `module purge`. Find software with `module spider <name>` and load it with an explicit `module load <name>/<version>`.
 - Python: `uv` for Python-only projects; conda from the global Miniforge (conda-forge only) for other dependencies. Never Anaconda, Miniconda, or the `defaults` channel (license terms). Use `conda`, not `mamba -n`, which fails on CBE.next.
-- Containers: Apptainer only (`singularity` is an alias). Images are built outside CBE.next, or by IT from a Git repository, and pulled from a registry.
+- Containers: Apptainer only (`singularity` is an alias). Build images on CBE.next from a definition file without root (base images with glibc 2.38 or newer, such as Debian 13 or Ubuntu 24.04), or pull them from a registry; see `cbe-software`.
 - Before pulling or downloading anything, check the read-only collections in `/cvmfs`, `/programs`, and `/resources`.
 - For finding, choosing, and using software, use the `cbe-software` skill.
 
 ## Storage
 
-| Path | Use for | Lifetime and backup | Check usage |
-|---|---|---|---|
-| `$HOME` (`/users/$USER`) | scripts, config, environments, small files | persistent; snapshots in `/users/.snapshot`; backup 180 days | `quota -s` |
-| `$SCRATCHDIR` (`/scratch/users/$USER`) | large active data and job I/O | files deleted after 28 days; no backup | `du -sh $SCRATCHDIR` |
-| `/groups/<group>` | shared input and retained results; not temporary job output | persistent; hourly snapshots in `/groups/.snapshot` | `quota -s` |
-| `/resources` | curated reference data, read-only | — | — |
-| `/clustertmp` | exchanging data with workstations or other groups; not job output | unmodified data is deleted automatically | — |
+| Path | Use for | Lifetime and backup |
+|---|---|---|
+| `$HOME` (`/users/$USER`) | scripts, config, environments, small files | persistent; snapshots in `/users/.snapshot`; backup 180 days |
+| `$SCRATCHDIR` (`/scratch/users/$USER`) | large active data and job I/O | files deleted after 28 days; no backup |
+| `/groups/<group>` | shared input and retained results; not temporary job output | persistent; hourly snapshots in `/groups/.snapshot` |
+| `/resources` | curated reference data, read-only | — |
+| `/clustertmp` | exchanging data with workstations or other groups; not job output | unmodified data is deleted after 28 days |
 
+- `myquota` shows space and file counts against the quotas on every filesystem; a home directory with many small files can hit the file limit first.
 - Staging pattern: authoritative copy in `/groups`, then stage into `$SCRATCHDIR`, compute, copy results back to `/groups`, and clean up.
 - Never leave the only copy of results on `/scratch`.
 - Never delete or overwrite anything in `/groups` without the user's explicit confirmation of the exact paths.

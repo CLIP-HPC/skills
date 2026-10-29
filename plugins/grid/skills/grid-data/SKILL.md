@@ -9,7 +9,7 @@ metadata:
 
 # EOS and grid storage
 
-Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28 and GOCDB (site Hephy-Vienna) as of 2026-10-28. Items marked *not available yet* may have changed.
+Facts below reflect the docs.vbc.ac.at pages as of 2026-10-29 and GOCDB (site Hephy-Vienna) as of 2026-10-28. Items marked *not available yet* may have changed.
 
 ## What's available
 
@@ -17,7 +17,7 @@ Facts below reflect the docs.vbc.ac.at pages as of 2026-10-28 and GOCDB (site He
 |---|---|---|---|
 | `/eos` mount | CBE.next login and compute nodes | local account | available |
 | `eos` CLI | CBE.next login nodes | local account | available |
-| XRootD `root://eos.grid.vbc.ac.at` | anywhere with network access | VOMS proxy, DN must be on the EOS mapping list | `xrdcp` and `xrdfs` documented; installation being checked (COPS-232) |
+| XRootD `root://eos.grid.vbc.ac.at` | anywhere with network access | VOMS proxy, DN must be on the EOS mapping list | `xrdcp` and `xrdfs` on CBE.next login and compute nodes |
 | WebDAV `https://eos.grid.vbc.ac.at:8443` | anywhere | grid certificate or proxy | client tools vary |
 | CERNBox https://cernbox.grid.vbc.ac.at | browser and sync client | VBC account | see the CERNBox page |
 
@@ -26,20 +26,22 @@ The VBC docs and GOCDB (WLCG site Hephy-Vienna) list both endpoints.
 Paths on EOS:
 
 - `/eos/vbc/cernbox/<user.name>`: personal CERNBox directory, 1 TB quota, with up to 10 versions per file.
-- `/eos/vbc/experiments`: experiment data.
-- `/eos/vbc/group`: group directories.
+- `/eos/vbc/experiments/alice`, `/eos/vbc/experiments/belle`, `/eos/vbc/experiments/cms`: experiment data.
+- `/eos/vbc/group/<group>`: group directories.
+
+A file has the same path under the `/eos` mount and in XRootD URLs.
 
 ## Hard rules
 
 - Never delete or overwrite experiment data under `/eos/vbc/experiments` or someone else's directory. Before any `rm`, `eos rm`, `xrdfs rm`, `gfal-rm`, `xrdcp --force`, or `rsync --delete` on EOS, show the exact paths and wait for the user's confirmation.
-- EOS has no snapshots and no backup: deleted or overwritten files can't be restored. Keep a copy of data that can't be reproduced. CERNBox versions cover only files in CERNBox and only the last 10 versions.
+- EOS has no snapshots and no backup: deleted or overwritten files can't be restored. Keep a copy of data that can't be reproduced. CERNBox keeps up to 10 versions per file and a trash bin, but only for files in CERNBox.
 - Run large transfers as batch jobs, not on the login nodes.
 - Credentials: see `grid-identity`. Never put the key or a proxy on EOS.
 
 ## Choose a method
 
 - **Browsing, small files, quick reads:** the FUSE mount, `ls /eos/vbc/...`, or `eos ls`.
-- **Large files and job input or output:** XRootD (`xrdcp`) once available. Until then, `cp` or `rsync` through `/eos`, run as a batch job, with files copied whole rather than read randomly.
+- **Large files and job input or output:** XRootD (`xrdcp`), run as a batch job.
 - **Many small files:** pack them (`tar`, ROOT files, HDF5) before writing to EOS. EOS is built for large files; thousands of tiny files are slow on any access path.
 - **Data from other grid sites:** `xrdcp` or `gfal-copy` with a VOMS proxy, or the experiment's data management (Rucio for CMS, the ALICE catalogue, Belle II gb2 tools).
 - **Analysis inside ROOT:** open `root://eos.grid.vbc.ac.at//eos/vbc/...` URLs directly, instead of copying, when the job reads only part of each file.
@@ -57,10 +59,9 @@ If `/eos` hangs or reports `Transport endpoint is not connected` on a node, don'
 ## XRootD
 
 ```bash
-command -v xrdcp xrdfs || echo "XRootD clients not installed here"
 export X509_USER_PROXY="$HOME/.globus/x509up_u$(id -u)"    # see grid-identity
-xrdfs eos.grid.vbc.ac.at ls -l /eos/vbc/group/<group>/
-xrdfs eos.grid.vbc.ac.at stat /eos/vbc/group/<group>/file.root
+xrdfs root://eos.grid.vbc.ac.at ls -l /eos/vbc/group/<group>/
+xrdfs root://eos.grid.vbc.ac.at stat /eos/vbc/group/<group>/file.root
 xrdcp --cksum adler32 root://eos.grid.vbc.ac.at//eos/vbc/group/<group>/file.root "$SCRATCHDIR/"
 xrdcp --cksum adler32 results.root root://eos.grid.vbc.ac.at//eos/vbc/group/<group>/results.root
 ```
@@ -69,7 +70,7 @@ xrdcp --cksum adler32 results.root root://eos.grid.vbc.ac.at//eos/vbc/group/<gro
 - `--cksum adler32` makes `xrdcp` compare checksums with the server; EOS stores adler32 checksums.
 - `xrdcp` refuses to overwrite an existing destination. `--force` overwrites, so it needs the same confirmation as a delete.
 - `xrdcp -r` copies directories; add `--parallel <n>` for many files.
-- Experiment environments may provide `xrdcp` before CBE.next does (see `grid-software`).
+- `Secsss (getKeyTab): Unable to open /etc/eos.keytab; permission denied` means no valid proxy was found: create one or check `X509_USER_PROXY` (`grid-identity`).
 
 ## WebDAV and gfal
 
