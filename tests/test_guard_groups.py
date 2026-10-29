@@ -26,11 +26,11 @@ class GuardGroups(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_hook(self, command, cwd=None, extra_env=None):
+    def run_hook(self, command, cwd=None, extra_env=None, tool="Bash", tool_input=None):
         env = dict(os.environ, CBE_PROTECTED_PATHS=self.groups, LAB=self.lab)
         env.pop("CBE_GROUPS_GUARD", None)
         env.update(extra_env or {})
-        event = {"tool_name": "Bash", "tool_input": {"command": command}, "cwd": cwd or self.lab}
+        event = {"tool_name": tool, "tool_input": tool_input or {"command": command}, "cwd": cwd or self.lab}
         r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(event),
                            capture_output=True, text=True, env=env, timeout=10)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -101,6 +101,67 @@ class GuardGroups(unittest.TestCase):
         self.assertAsks("rm $(ls *.log)")
         self.assertAsks("for f in *.log; do rm \"$f\"; done")
         self.assertAsks("ls\nrm -r experiment", "experiment")
+
+    # Agents on a laptop reach the cluster through ssh; remote paths can't be checked.
+    def test_ssh_remote_commands(self):
+        target = "%s/lab/bob/experiment" % self.groups
+        self.assertAsks("ssh cbe.next 'rm -rf %s'" % target, "cbe.next:" + target)
+        self.assertAsks("ssh -p 22 -o BatchMode=yes user@cbe.next rm -r %s" % target, "cbe.next:" + target)
+        self.assertAsks("ssh cbe.next 'cd %s/lab/bob && rm -r experiment'" % self.groups, target)
+        self.assertAsks("ssh cbe.next \"bash -lc 'find %s -delete'\"" % target, target)
+        self.assertAsks("rsync -a --delete out/ cbe.next:%s/" % target, "cbe.next:" + target)
+        self.assertAllows("ssh cbe.next 'ls -la %s && du -sh %s'" % (target, target))
+        self.assertAllows("ssh cbe.next 'rm -rf /tmp/scratch-x'")
+        self.assertAllows("ssh cbe.next rm -r old-logs")
+        self.assertAllows("ssh cbe.next")
+        self.assertAllows("rsync -a out/ cbe.next:%s/" % target)
+
+    def test_file_tools(self):
+        existing = os.path.join(self.lab, "results.txt")
+        self.assertIsNotNone(self.run_hook(None, tool="Write", tool_input={"file_path": existing, "content": "x"}))
+        self.assertIsNotNone(self.run_hook(None, tool="Edit", tool_input={
+            "file_path": existing, "old_string": "a", "new_string": "b"}))
+        self.assertIsNone(self.run_hook(None, tool="Write", tool_input={
+            "file_path": os.path.join(self.lab, "new.txt"), "content": "x"}))
+        self.assertIsNone(self.run_hook(None, tool="Write", tool_input={
+            "file_path": os.path.join(self.other, "x.tmp"), "content": "x"}))
+
+    def test_in_place_edits(self):
+        self.assertAsks("sed -i 's/a/b/' results.txt", "results.txt")
+        self.assertAsks("sed -i.bak -e 's/a/b/' %s/results.txt" % self.lab, "results.txt")
+        self.assertAsks("perl -pi -e 's/a/b/' results.txt", "results.txt")
+        self.assertAllows("sed 's/a/b/' results.txt > %s/out.txt" % self.other)
+        self.assertAllows("sed -i 's/a/b/' %s/x.tmp" % self.other)
+
+    def test_copies_onto_existing_files(self):
+        open(os.path.join(self.other, "results.txt"), "w").close()
+        self.assertAsks("rsync -a %s/ %s/" % (self.other, self.lab), "results.txt")
+        self.assertAllows("rsync -a --ignore-existing %s/ %s/" % (self.other, self.lab))
+        self.assertAsks("cp -r %s/results.txt %s/x.tmp %s/" % (self.other, self.other, self.lab), "results.txt")
+        self.assertAllows("cp -n %s/results.txt %s/" % (self.other, self.lab))
+        self.assertAllows("cp %s/x.tmp %s/" % (self.other, self.lab))
+
+    def test_archives_and_git(self):
+        self.assertAsks("tar -xzf data.tar.gz -C %s" % self.lab, self.lab)
+        self.assertAsks("tar xf data.tar", self.lab)
+        self.assertAllows("tar -xkf data.tar -C %s" % self.lab)
+        self.assertAllows("tar -czf %s/out.tgz experiment" % self.other)
+        self.assertAllows("tar -xf data.tar -C %s" % self.other)
+        self.assertAsks("unzip -o data.zip -d %s" % self.lab, self.lab)
+        self.assertAsks("git clean -fdx", self.lab)
+        self.assertAsks("git -C %s reset --hard" % self.lab, self.lab)
+        self.assertAsks("git checkout -- results.txt", self.lab)
+        self.assertAllows("git status && git log -1")
+        self.assertAllows("git clean -n")
+
+    def test_prompt_describes_target(self):
+        reason = self.run_hook("rm -r experiment")["permissionDecisionReason"]
+        self.assertIn("2 files", reason)
+        self.assertIn("owner ", reason)
+        self.assertNotIn("snapshot hourly", reason)
+        os.makedirs(os.path.join(self.groups, ".snapshot", "hourly.2000-01-01_0000"))
+        reason = self.run_hook("rm -r experiment")["permissionDecisionReason"]
+        self.assertIn("changed after the latest snapshot hourly.2000-01-01_0000", reason)
 
     def test_disable(self):
         self.assertIsNone(self.run_hook("rm -r experiment", extra_env={"CBE_GROUPS_GUARD": "off"}))
