@@ -32,7 +32,7 @@ class BundleTests(unittest.TestCase):
         generate(self.root)
 
     def test_valid_bundle_and_idempotent_generation(self):
-        self.assertEqual(validate(self.root), (2, 14))
+        self.assertEqual(validate(self.root), (2, 15))
         self.assertEqual(generate(self.root), [])
 
     def test_version_changes_reach_both_hosts_and_check_never_writes(self):
@@ -47,7 +47,7 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(target.read_bytes(), before)
         generate(self.root)
         self.assertEqual(json.loads(target.read_text())["version"], "1.2.3")
-        self.assertEqual(validate(self.root), (2, 14))
+        self.assertEqual(validate(self.root), (2, 15))
 
     def test_missing_or_modified_generated_files_fail_validation(self):
         for target in generated_files(self.root):
@@ -132,7 +132,7 @@ class BundleTests(unittest.TestCase):
     def test_second_local_plugin_is_generated_and_validated(self):
         self.add_local_plugin("other", "other-skill")
         generate(self.root)
-        self.assertEqual(validate(self.root), (3, 15))
+        self.assertEqual(validate(self.root), (3, 16))
         claude = json.loads((self.root / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual([entry["name"] for entry in claude["plugins"]], ["cbe", "grid", "other"])
         self.assertTrue((self.root / "plugins/other/.claude-plugin/plugin.json").is_file())
@@ -150,7 +150,7 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(sources, [self.root / "plugins" / name / "skills"
                                    for name in ("cbe", "grid", "other")])
         destination = self.root.parent / "destination with spaces"
-        self.assertEqual(installer.install(sources, destination), 15)
+        self.assertEqual(installer.install(sources, destination), 16)
         for skill in (path for source in sources for path in source.iterdir()):
             self.assertTrue((destination / skill.name).is_symlink())
             self.assertEqual((destination / skill.name).resolve(), skill.resolve())

@@ -17,6 +17,7 @@ scripts and logs rather than connecting to a production cluster for the check.
 | “Where should this CBE.next job store intermediates and retained results?” | Select `cbe-data`; distinguish temporary scratch from retained group data and preserve the documented storage rules. |
 | “How do I find and load this tool on CBE.next?” | Select `cbe-software`; begin with the documented software sources and environment checks. |
 | “Set up a reproducible conda environment for this CBE.next project.” | Select `cbe-python`; check the user's dotfiles and quota, write a tracked `environment.yml` with conda-forge and Bioconda, create it by path, and commit a `conda-lock.yml`. No `conda init`, `defaults` channel, or `/scratch`. |
+| “Run nf-core/rnaseq on my samples on CBE.next; I used `-profile cbe` on the old cluster.” | Select `cbe-nextflow`; drop the legacy `cbe` profile, write `cbe-next.config` with the Slurm executor and QOS from the task time, run the head job with `sbatch` (not on the login node), put the work directory on `$SCRATCHDIR` and results in `/groups`, set the image cache in group storage, and test with `-profile test,singularity` first. |
 | “Explain an ordinary local Python function.” | Do not activate an unrelated CBE skill. |
 | “Set up my grid certificate and a CMS proxy for a CBE.next batch job.” | Select `grid-identity`; convert the `.p12` into `~/.globus` with a private key, check for `voms-proxy-init`, write the proxy outside per-job `/tmp`, set `X509_USER_PROXY`, and mention the EOS mapping ticket. |
 | “Set up CMSSW from CVMFS.” | Select `grid-software`; source `cmsset_default.sh`, pin a release with `cmsrel`, and keep the release area off `/scratch`. |
@@ -25,6 +26,6 @@ scripts and logs rather than connecting to a production cluster for the check.
 | “`xrdcp` to EOS fails with `Auth failed`.” | Select `grid-triage`; check the proxy first, then the EOS DN mapping, and draft a ticket without the key or proxy. |
 | “Make a ROOT histogram with a log axis on my laptop.” | Do not activate a grid skill. |
 
-Also select each of the 14 skills (nine `cbe`, five `grid`) explicitly in the host's picker and check
+Also select each of the 15 skills (ten `cbe`, five `grid`) explicitly in the host's picker and check
 that the expected instructions load. If a specialist skill references a sibling,
 confirm that the sibling is available in the installed bundle.
