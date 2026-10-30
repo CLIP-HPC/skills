@@ -77,12 +77,15 @@ class Ctx:
         self.remote = remote    # host name for commands run through ssh
         self.hits = []          # (action, path, remote host or None)
         self.unsure = []        # reasons we couldn't resolve a target
+        self.runtime = set()    # variables assigned at run time, e.g. d=$(mktemp -d)
+        self.text = ""          # the whole command, heredoc data removed
 
     def for_host(self, host):
         # The remote shell starts in the user's home with an unknown environment.
         sub = Ctx("~", self.roots, {}, remote=host)
         sub.hits = self.hits
         sub.unsure = self.unsure
+        sub.text = self.text
         return sub
 
 
@@ -90,6 +93,13 @@ def under(path, root):
     path = path.rstrip("/") or "/"
     root = root.rstrip("/") or "/"
     return path == root or path.startswith(root + "/") or root.startswith(path + "/") or path == "/"
+
+
+def inside(path, root):
+    """path is root or below it (not an ancestor of it)."""
+    path = path.rstrip("/") or "/"
+    root = root.rstrip("/") or "/"
+    return path == root or path.startswith(root + "/")
 
 
 def protected(path, ctx):
@@ -105,11 +115,17 @@ def protected(path, ctx):
 def expand(arg, ctx):
     """Return (paths, unresolved) for one shell word."""
     unresolved = False
+    lead = re.match(r"\$\{?(\w+)", arg)
+    if lead and lead.group(1) in ctx.runtime:
+        # Starts with a value computed at run time (d=$(mktemp -d); rm -rf "$d"): the
+        # path is unknown, not "/". Ask only if the command names a protected root.
+        named = [r for r in ctx.roots if r in ctx.text]
+        return named, True
 
     def sub(m):
         nonlocal unresolved
         name = m.group(1) or m.group(2)
-        if name in ctx.env:
+        if name in ctx.env and name not in ctx.runtime:
             return ctx.env[name]
         unresolved = True
         return ""
@@ -285,7 +301,14 @@ def segment(seg, ctx, whole):
     while words and re.match(r"^[A-Za-z_]\w*=", words[0]):
         name, _, value = words[0].partition("=")
         if len(words) == 1:
-            ctx.env[name] = re.sub(r"\$\{?(\w+)\}?", lambda m: ctx.env.get(m.group(1), ""), value)
+            # "d=$(cmd)" reaches us as "d=$" because "(" separates tokens.
+            if value.endswith("$") or "$(" in value or "`" in value or any(
+                    v in ctx.runtime for v in re.findall(r"\$\{?(\w+)", value)):
+                ctx.runtime.add(name)
+                ctx.env.pop(name, None)
+            else:
+                ctx.runtime.discard(name)
+                ctx.env[name] = re.sub(r"\$\{?(\w+)\}?", lambda m: ctx.env.get(m.group(1), ""), value)
         words = words[1:]
     if not words:
         return
@@ -296,7 +319,8 @@ def segment(seg, ctx, whole):
     if cmd == "cd":
         target = args[0] if args else "~"
         paths, _ = expand(target, ctx)
-        ctx.cwd = paths[0]
+        # No path: a directory computed at run time (cd "$(mktemp -d)") that names no protected root.
+        ctx.cwd = paths[0] if paths else "(directory computed at run time)"
         return
 
     if cmd == "ssh":
@@ -488,15 +512,69 @@ def stdin_targets(cmd, ctx, whole):
 
 def context_targets(reason, ctx, whole):
     """Targets we can't see: ask if the command names or runs in a protected path."""
-    named = []
-    for t in re.findall(r"[~\w./${}-]+", whole):
-        if "/" in t:
-            paths, _ = expand(t, ctx)
-            named += [p for p in paths if protected(p, ctx)]
+    named = {}
+    for t in re.findall(r"[~\w./${}:\"'-]+", whole):
+        t = t.replace('"', "").replace("'", "")  # "$d"/ is one word
+        if "/" not in t or "://" in t or t.startswith("//") or is_remote(t):
+            continue  # URLs, comments, and host:path aren't local paths
+        paths, unresolved = expand(t, ctx)
+        for p in paths:
+            if not protected(p, ctx):
+                continue
+            # A path that only became an ancestor of a root, such as "/", because a
+            # variable was dropped ("$d/") says nothing about where the command writes.
+            if ("$" in t or "`" in t or unresolved) and not any(inside(p, r) for r in ctx.roots):
+                continue
+            named.setdefault(p, t)
     if named or protected(ctx.cwd, ctx):
-        where = sorted(set(named)) or [ctx.cwd + "  (working directory)"]
-        for p in where:
-            hit(ctx, "possible delete/move: " + reason, p)
+        where = sorted(named.items()) or [(ctx.cwd, None)]
+        for p, t in where:
+            label = "  (working directory)" if t is None else ("" if t == p else "  (written as %s)" % t)
+            # A path named in a command that also uses ssh may be on either host.
+            maybe_remote = t is not None and not ctx.remote and re.search(r"(^|[\s;&|(])ssh\s", whole)
+            ctx.hits.append(("possible delete/move: " + reason, p + label, "?" if maybe_remote else ctx.remote))
+
+
+HEREDOC = re.compile(r"(?<!<)<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
+
+
+def split_heredocs(command):
+    """Remove heredoc bodies, which shlex can't parse and which are data for
+    most commands. Returns the command without them and a list of
+    (command line, body) for heredocs fed to a shell or ssh, which run the
+    body as commands. A heredoc without its end marker is left in place."""
+    lines = command.split("\n")
+    out, fed, i = [], [], 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        i += 1
+        for m in HEREDOC.finditer(line):
+            strip_tabs, word = m.group(1) == "-", m.group(3)
+            end = next((j for j in range(i, len(lines))
+                        if (lines[j].lstrip("\t") if strip_tabs else lines[j]) == word), None)
+            if end is None:
+                return command, []
+            body = "\n".join(lines[i:end])
+            first = re.split(r"[\s;&|()]+", line[:m.start()].strip())
+            if any(os.path.basename(w) in SHELLS | {"ssh"} for w in first if w):
+                fed.append((line[:m.start()], body))
+            i = end + 1
+    return "\n".join(out), fed
+
+
+def analyse_fed(fed, ctx):
+    """Analyse heredoc bodies that a shell or ssh runs as commands."""
+    for line, body in fed:
+        words = line.split()
+        host = None
+        if "ssh" in [os.path.basename(w) for w in words]:
+            rest = words[[os.path.basename(w) for w in words].index("ssh") + 1:]
+            j = 0
+            while j < len(rest) and rest[j].startswith("-"):
+                j += 2 if rest[j][-1] in SSH_VALUE_OPTS and len(rest[j]) == 2 else 1
+            host = rest[j].split("@")[-1] if j < len(rest) else "ssh host"
+        analyse(body, ctx.for_host(host) if host else ctx, body)
 
 
 def latest_snapshot(root):
@@ -592,12 +670,15 @@ def decide(event):
         command = (event.get("tool_input") or {}).get("command", "")
         if not command:
             return None
+        command, fed = split_heredocs(command)
+        ctx.text = command + "".join("\n" + body for _, body in fed)
         analyse(command, ctx, command)
-        if ctx.unsure and RAW_DESTRUCTIVE.search(command):
-            context_targets(ctx.unsure[0], ctx, command)
+        analyse_fed(fed, ctx)
+        if ctx.unsure and RAW_DESTRUCTIVE.search(ctx.text):
+            context_targets(ctx.unsure[0], ctx, ctx.text)
         # Command substitution, heredocs, and loops can hide targets from the parse.
-        if not ctx.hits and re.search(r"\$\(|`|<<", command) and RAW_DESTRUCTIVE.search(command):
-            context_targets("targets are computed at run time", ctx, command)
+        if not ctx.hits and re.search(r"\$\(|`|<<", ctx.text) and RAW_DESTRUCTIVE.search(ctx.text):
+            context_targets("targets are computed at run time", ctx, ctx.text)
     else:
         file_tool_hits(event, ctx)
 
@@ -609,11 +690,17 @@ def decide(event):
         if (action, path, host) in seen:
             continue
         seen.add((action, path, host))
+        if host == "?":
+            lines.append("  - %s: %s  (may be on the ssh host; contents not checked)" % (action, path))
+            continue
         if host:
             lines.append("  - %s: %s:%s  (on %s; contents not checked)" % (action, host, path, host))
             continue
         line = "  - %s: %s" % (action, path)
-        info = describe(path.split("  (")[0], roots, deadline) if time.monotonic() < deadline else None
+        bare = path.split("  (")[0]
+        # Describe only what is really inside an existing root, never an ancestor such as "/".
+        local = [r for r in roots if inside(bare, r) and os.path.isdir(r)]
+        info = describe(bare, roots, deadline) if local and time.monotonic() < deadline else None
         if info:
             line += "\n      " + info
         lines.append(line)

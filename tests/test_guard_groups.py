@@ -116,6 +116,31 @@ class GuardGroups(unittest.TestCase):
         self.assertAllows("ssh cbe.next")
         self.assertAllows("rsync -a out/ cbe.next:%s/" % target)
 
+    # Issue #26: false prompts for "/" from heredocs, run-time values, and dropped variables.
+    def test_issue_26_false_positives(self):
+        heredoc = ("cat > test.config <<'EOF'\n// m only for tasks that don't fit\nEOF\n"
+                   "scp test.config cbe.next:/tmp/ && ssh cbe.next 'd=$(mktemp -d) && "
+                   "mv /tmp/test.config $d/ && cd $d && nextflow run main.nf; rm -rf $d'")
+        self.assertAllows(heredoc, cwd=self.other)
+        self.assertAllows("ssh cbe.next 'd=$(mktemp -d) && rm -rf \"$d\"'", cwd=self.other)
+        self.assertAllows('d=$(mktemp -d); rm -rf "$d"/', cwd=self.other)
+        self.assertAllows("cat > notes.txt <<'EOF'\ndon't rm -rf /\nEOF", cwd=self.other)
+        self.assertAllows("echo \"unbalanced && rm -rf $d/ // comment", cwd=self.other)
+
+    def test_issue_26_still_asks(self):
+        self.assertAsks('d=$(ls -d %s/lab/*); rm -rf "$d"' % self.groups, self.groups, cwd=self.other)
+        self.assertAsks("bash <<'EOF'\nrm -r %s/experiment\nEOF" % self.lab, "experiment", cwd=self.other)
+        self.assertAsks("ssh cbe.next <<'EOF'\nrm -rf %s/lab\nEOF" % self.groups, "cbe.next:", cwd=self.other)
+        self.assertAsks("cat > /tmp/x <<'EOF'\nit's\nEOF\nrm -r experiment", "experiment")
+        self.assertAsks("cat <<EOF\nrm -r experiment", "experiment")
+        # An unset variable still asks, but the prompt doesn't describe the local "/".
+        reason = self.run_hook('rm -rf "$UNSET_OUTDIR"/', cwd=self.other)["permissionDecisionReason"]
+        self.assertNotIn("owner ", reason)
+        # Paths named next to ssh in an unparseable command may be on either host.
+        reason = self.run_hook("echo \"x && ssh cbe.next rm -rf %s/lab" % self.groups,
+                               cwd=self.other)["permissionDecisionReason"]
+        self.assertIn("may be on the ssh host", reason)
+
     def test_file_tools(self):
         existing = os.path.join(self.lab, "results.txt")
         self.assertIsNotNone(self.run_hook(None, tool="Write", tool_input={"file_path": existing, "content": "x"}))
