@@ -5,9 +5,9 @@ Unix hosts, such as the CBE.next nodes, and keep client updates under central
 control. Users need no setup, Python, or GitHub account.
 
 Both clients install `cbe` from this repository on GitHub, at a branch or tag
-you choose, and keep it up to date from there. Publishing a release on GitHub
-is all it takes to update the hosts. Each host needs `git` and HTTPS access to
-`github.com`.
+you choose, and keep it up to date from there. Hosts following `latest` receive
+published releases; hosts following `main` receive merged changes. Each host
+needs `git` and HTTPS access to `github.com`.
 
 Per-host configuration in `/etc` is written once per host by
 `deploy/install-host.sh`. Install the approved client binaries separately.
@@ -21,7 +21,8 @@ Your configuration management can do this, or you can run it by hand on a node:
 ```bash
 deploy/install-host.sh --dry-run          # show what would change
 deploy/install-host.sh                    # install or update, following main
-deploy/install-host.sh --version v0.3.0   # follow a branch or tag instead
+deploy/install-host.sh --version latest   # follow published releases
+deploy/install-host.sh --version cbe-v0.7.1 # pin a specific release
 deploy/install-host.sh --remove           # uninstall
 ```
 
@@ -92,11 +93,92 @@ and [app update controls](https://learn.chatgpt.com/docs/enterprise/manage-app-u
 
 ## Updates and rollback
 
-With the default `--version main`, merging a release with a bumped version on
-GitHub updates every host: Claude Code during or after the next session, Codex
-at its next start. To control the rollout, install with `--version <tag>` and
-rerun the installer with the next tag. Roll back the same way, with the
-previous tag.
+Use `--version latest` to follow published releases. The release workflow moves
+that tag forward after a non-prerelease is published and its manifest version
+is checked. It is shared by `cbe` and `grid`, so either plugin's release can
+advance it. Never move `latest` by hand.
+
+The installer still defaults to `main`, which includes changes before a release
+is published. Hosts following that branch can receive a bumped plugin version
+as soon as it is merged. For either moving ref, Claude Code updates during or
+after the next session, and Codex at its next start.
+
+To control the rollout manually, install with `--version cbe-v<version>` and
+rerun the installer with the next release tag. Roll back the same way with a
+known previous tag, then restart both clients and verify the installed version.
+Reapply `--version latest` to resume automatic release tracking.
+
+## Migrate an existing Linux host
+
+Use a current checkout for the installer; each user's client fetches the plugin
+from GitHub independently. The installer does not require a shared plugin clone
+to remain on the host after migration. Keep the approved client binaries and
+the current policy disabling client self-updates.
+
+1. Record the old shared-checkout path and back up the three host configuration
+   files before replacing or merging them. In a root shell:
+
+   ```sh
+   backup=$(mktemp -d /root/clip-hpc-config.XXXXXX)
+   for file in /etc/claude-code/managed-settings.d/50-clip-hpc.json \
+               /etc/codex/config.toml /etc/codex/requirements.toml; do
+     if [ -f "$file" ]; then
+       mkdir -p "$backup$(dirname "$file")"
+       cp -p "$file" "$backup$file"
+     fi
+   done
+   printf 'Configuration backup: %s\n' "$backup"
+   ```
+
+2. From the checkout, preview and apply the release configuration:
+
+   ```sh
+   sudo deploy/install-host.sh --version latest --dry-run
+   sudo deploy/install-host.sh --version latest
+   ```
+
+   The preview reports files to write; inspect the templates as well. If the
+   installer reports an unmanaged Codex file, merge the corresponding template
+   into it manually, replacing `@SKILLS_REF@` with `latest`. Preserve unrelated
+   settings and do not add the ownership marker to a file you manage yourself.
+   In that case, merge all three templates manually: the installer checks all
+   targets before writing any of them and will continue to refuse unmanaged
+   Codex files. To render the templates without touching `/etc`, run
+   `deploy/install-host.sh --version latest --root "$(mktemp -d)"` as an ordinary
+   user and use the files under the reported staging path.
+
+3. Confirm the Claude marketplace source is `github`, repository
+   `CLIP-HPC/skills`, ref `latest`, with `autoUpdate` on. Confirm the Codex
+   marketplace source is `git`, URL `https://github.com/CLIP-HPC/skills.git`,
+   ref `latest`. Both must enable `cbe@clip-hpc`. These are the values rendered
+   from the templates listed above.
+
+4. Check existing users' configuration for old filesystem marketplace entries.
+   Codex user configuration, including a custom `CODEX_HOME`, can override the
+   system defaults: migrate the `marketplaces.clip-hpc` entry to the Git source
+   above, removing obsolete local-source fields, or remove that entry to inherit
+   the system default. Check for an explicit user override disabling CBE too.
+   For Claude, check the effective marketplace source after the first launch
+   under the new managed settings. Preserve unrelated marketplaces, plugins,
+   and preferences; do not delete users' entire client directories.
+
+5. Verify with both a fresh ordinary user and an existing user who used the old
+   marketplace, as described below. Confirm the source and installed version as
+   well as the enabled status. Keep the old checkout until both clients load
+   CBE successfully from GitHub.
+
+6. Check `git config --system --get-all safe.directory` for obsolete trust of
+   the old checkout and its `.git` directory. Running the installer from that
+   same path removes those two entries automatically. If it ran elsewhere,
+   remove only those exact old entries with
+   `sudo git config --system --fixed-value --unset-all safe.directory PATH`,
+   once for each recorded path that is present. Preserve other trust entries.
+
+After the next published CBE release, start both clients again and verify the
+new installed version and skills. This checks automatic updates on the actual
+host; rendering templates and running installer tests alone cannot establish
+that client fetching and cache refresh work there. No cron job is needed for
+the plugin checkout.
 
 ## Verify
 
