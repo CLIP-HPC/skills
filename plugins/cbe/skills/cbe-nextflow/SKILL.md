@@ -47,7 +47,7 @@ nf-core's institutional profile `-profile cbe` was written for legacy CBE. On CB
 
     executor {
         name              = 'slurm'
-        queueSize         = 200
+        queueSize         = 100
         submitRateLimit   = '5 sec'
         queueStatInterval = '2 min'
         exitReadTimeout   = '5 min'
@@ -57,7 +57,7 @@ nf-core's institutional profile `-profile cbe` was written for legacy CBE. On CB
         executor       = 'slurm'
         cache          = 'lenient'
         resourceLimits = [cpus: 192, memory: 7.5.TB, time: 14.d]
-        // m only for tasks that need more than a c node has; Slurm rejects m jobs under 700,000 MB
+        // m only for tasks that need more memory than a c node has (m also has a minimum memory per job)
         queue          = { task.memory > 740.GB ? 'm' : 'c' }
         // QOS level from the time limit; the submit hook adds the partition prefix
         clusterOptions = {
@@ -84,7 +84,7 @@ nf-core's institutional profile `-profile cbe` was written for legacy CBE. On CB
     ```
 
     Why each part:
-    - `submitRateLimit` and `queueStatInterval`: Slurm on CBE.next rate-limits users who send many requests. Nextflow's defaults (no submit limit, a status query every minute) can hit it on large runs.
+    - `submitRateLimit` and `queueStatInterval`: Slurm on CBE.next rate-limits users who send many requests. Nextflow's defaults (no submit limit, a status query every minute) can hit it on large runs. `queueSize` keeps at most 100 task jobs in Slurm at a time; more pending jobs don't start sooner.
     - `cache = 'lenient'`: `/groups` and `/scratch` are network filesystems whose inode numbers and timestamps can change, which makes the default cache rerun tasks after `-resume`.
     - `queue`, `clusterOptions`: CBE.next partitions have no time limit; the QOS sets it. Write only the level (`--qos=short`); a submit hook adds the partition prefix. A task without `time` gets `short` (8 hours).
     - `resourceLimits` caps pipeline defaults at the largest node. `m` nodes have 160 cores, so a task asking for more than 740 GB *and* more than 160 CPUs fails; lower its CPUs.
