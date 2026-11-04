@@ -134,17 +134,23 @@ Why this needs support:
 
 Create it only after the user approves the text.
 
-- With the Atlassian connector (`createJiraIssue`) on `vbc.atlassian.net`:
-  - project `ISD` (IT Service Desk);
-  - issue type `Support`;
-  - request type **CLIP Support** (ID `30`) in the field `customfield_10010`.
+**With the Atlassian connector** (the Atlassian Rovo MCP server for `vbc.atlassian.net`, signed in with the user's own account through OAuth): users are Service Desk customers, so create a customer request with the Jira Service Management (JSM) tools. Don't use `createJiraIssue`: creating Jira issues needs agent permissions and fails for customers.
 
-  Use **CLIP Account** (ID `29`) for account or access problems, and **CLIP Software** (ID `31`) for software installation requests.
-- If the connector isn't available, or the user can't create issues through the API, give the user the final text to paste into the portal form: https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/30 (CLIP Support), `/create/29` (CLIP Account), or `/create/31` (CLIP Software).
-- If the user already has a ticket open for the same problem, add the new facts to it as a comment instead of opening another one.
-- ÖAW users can also write to contact@clip.science. For quick operational questions, there's the CBE.next MS Teams channel.
+1. Look for an open request on the same problem first: `searchJsmRequests` with the JQL `project = ISD AND reporter = currentUser() AND statusCategory != Done ORDER BY created DESC`. If one exists, add the new facts to it instead of opening another: with `addOrEditJiraIssueComment` if the connector accepts it, otherwise give the user the text to paste as a comment at the request's `portalUrl`.
+2. `getJsmRequestCreationOptions` with the project key `ISD`. It returns the service desk ID (`5`) and the request types: **CLIP Support** (`30`), **CLIP Account** (`29`) for account or access problems, and **CLIP Software** (`31`) for software installation requests.
+3. `getJsmRequestTypeFields` with that service desk and request type. Fill the fields it returns, which are currently:
+   - CLIP Support: `summary` (the Summary line of the draft) and `description` (the rest);
+   - CLIP Account: `summary` is the user's VBC logon name, `description` the use case;
+   - CLIP Software: `summary` is the application name, `customfield_10063` the version, `customfield_10083` a link to the application's website (required), and `description` the details.
+4. `createJsmRequest` with `serviceDeskId`, `requestTypeId`, and `requestFieldValues`. The user becomes the reporter.
 
-After creating it, give the user the ticket key and link. Remind them to keep the logs, scripts, and inputs in place until the ticket is closed, and to answer support's questions on the ticket: unanswered questions close tickets without a fix.
+If the connector lists only some tools, find these with `discover` and run them with `executeRead` (steps 1 to 3) or `executeWrite` (step 4).
+
+**Without the connector**, or if it refuses a call, for example because the user's account can't sign in to it, give the user the final text to paste into the portal form: https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/30 (CLIP Support), `/create/29` (CLIP Account), or `/create/31` (CLIP Software). Don't try other tools or accounts to get around the refusal.
+
+ÖAW users can also write to contact@clip.science. For quick operational questions, there's the CBE.next MS Teams channel.
+
+After creating it, give the user the ticket key and its portal link, https://vbc.atlassian.net/servicedesk/customer/portal/5/<key>, not the agent link that `createJsmRequest` returns. Remind them to keep the logs, scripts, and inputs in place until the ticket is closed, and to answer support's questions on the ticket: unanswered questions close tickets without a fix.
 
 ## Details (fetch as Markdown)
 

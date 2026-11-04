@@ -65,7 +65,7 @@ Stop at the first source that has a suitable version. For a general command-line
 4. **CERN unpacked images**, for images from public registries: `ls /cvmfs/unpacked.cern.ch/<registry>/<namespace>/`. Only images on CERN's mirror list are there.
 5. **Pull a container yourself**, for example `apptainer pull docker://...`.
 6. **Python packages:** `uv`. **Packages with non-Python dependencies** (R, bioinformatics tools): a conda environment from conda-forge and Bioconda.
-7. **Still missing:** ask the user whether to request an installation. That's an IT Service Desk request of type **CLIP Software**: project `ISD`, request type ID `31`, portal form https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/31. Draft the request with the application, version, workflow, resource needs, and any license restrictions, show it to the user, and create it only after they approve.
+7. **Still missing:** ask the user whether to request an installation. That's an IT Service Desk request of type **CLIP Software**: project `ISD`, request type ID `31`, portal form https://vbc.atlassian.net/servicedesk/customer/portal/5/group/6/create/31. Draft the request with the application, version, workflow, resource needs, and any license restrictions, show it to the user, and create it only after they approve, as described in the `cbe-ticket` skill.
 
 **CVMFS gotcha:** repositories mount on first access, so `ls /cvmfs` can look nearly empty. List the full repository path directly.
 
