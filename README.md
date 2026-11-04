@@ -5,7 +5,7 @@ Shared Agent Skills for the Vienna BioCenter, distributed as two plugins in the
 
 | Plugin | For | Skills |
 |---|---|---|
-| `cbe` | Everyone using CBE.next, the Vienna BioCenter HPC cluster | nine |
+| `cbe` | Everyone using CBE.next, the Vienna BioCenter HPC cluster | ten |
 | `grid` | The grid experiment groups (ALICE, CMS, Belle II) and the Vienna Tier-2 | five |
 
 Each plugin's canonical manifest is `plugins/<plugin>/plugin.json`, for example
@@ -29,6 +29,7 @@ Install complete plugins: the skills refer to each other by name.
 | `cbe-next` | Connect, follow cluster rules, pick partitions and GPUs, and write batch scripts. Start here. |
 | `cbe-software` | Find, load, or install software: modules, containers, `uv`, conda, licensed software. |
 | `cbe-python` | Set up and maintain reproducible uv and conda environments tracked in git. |
+| `cbe-nextflow` | Set up, run, resume, and debug Nextflow and nf-core pipelines. |
 | `cbe-data` | Choose filesystems, restore files, and move data on and off the cluster. |
 | `cbe-tuning` | Make jobs faster or request resources that match what they use. |
 | `cbe-queue` | Understand why a job waits: priority, fair share, backfill, and start order. |
@@ -165,7 +166,7 @@ and [Claude marketplace reference](https://code.claude.com/docs/en/plugins/marke
 ## Use standalone skills
 
 When a plugin install is unsuitable, link the skill folders into a host's skill
-directory: all 14 by default, or one plugin's with `--plugin cbe` or
+directory: all 15 by default, or one plugin's with `--plugin cbe` or
 `--plugin grid`. The helper needs only Python 3.10+ and never replaces existing
 files.
 
@@ -189,7 +190,7 @@ For a host that accepts uploaded Agent Skills, the existing helper builds one
 archive per skill:
 
 ```bash
-scripts/package-skills.sh                 # all 14 into dist/
+scripts/package-skills.sh                 # all 15 into dist/
 scripts/package-skills.sh cbe-triage      # one skill
 ```
 

@@ -111,7 +111,7 @@ Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2
 - Python: `uv` for Python-only projects; conda from the global Miniforge (conda-forge only) for other dependencies. Never Anaconda, Miniconda, or the `defaults` channel (license terms). Use `conda`, not `mamba -n`, which fails on CBE.next.
 - Containers: Apptainer only (`singularity` is an alias). Build images on CBE.next from a definition file without root (base images with glibc 2.38 or newer, such as Debian 13 or Ubuntu 24.04), or pull them from a registry; see `cbe-software`.
 - Before pulling or downloading anything, check the read-only collections in `/cvmfs`, `/programs`, and `/resources`.
-- For finding, choosing, and using software, use the `cbe-software` skill.
+- For finding, choosing, and using software, use the `cbe-software` skill. For Nextflow and nf-core pipelines, use `cbe-nextflow`.
 
 ## Storage
 
