@@ -1,6 +1,6 @@
 ---
 name: cbe-next
-description: "Work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login cbenext.vbc.ac.at, nodes cbe-c3-*, cbe-g5-*, cbe-m3-*): connect over SSH, choose Slurm partitions c, g, and m and Slurm accounts, pick NVIDIA B200 GPUs or MIG slices, and write or submit sbatch, salloc, srun, and job-array jobs, including OpenOnDemand sessions. Use for general cluster access and job setup; use the specialized CBE skills for software, data, tuning, failure triage, and migration."
+description: "Work on CBE.next, the Vienna BioCenter HPC cluster (SSH alias cbe.next, login cbenext.vbc.ac.at, nodes cbe-c3-*, cbe-g3-*, cbe-g4-*, cbe-g5-*, cbe-m2-*, cbe-m3-*): connect over SSH, choose Slurm partitions c, g, and m and Slurm accounts, pick NVIDIA B200, A100, or RTX 6000 GPUs or MIG slices, and write or submit sbatch, salloc, srun, and job-array jobs, including OpenOnDemand sessions. Use for general cluster access and job setup; use the specialized CBE skills for software, data, tuning, failure triage, and migration."
 metadata:
   display-name: "CBE.next"
   short-description: "Connect to CBE.next and prepare Slurm jobs"
@@ -41,11 +41,11 @@ Legacy CBE is a different system that shuts down on 2026-12-18. You can recognis
 | Partition | Nodes | Cores per node | Memory per node | Default memory per CPU | GPUs |
 |---|---|---|---|---|---|
 | `c` (default) | `cbe-c3-[1-12]` | 192 (AMD Zen 5, no SMT) | about 754 GB | 3,800 MB | none |
-| `g` | `cbe-g5-[1-8]` | 192 | about 1.5 TB | 7,600 MB | 8× B200 (4 full + 28 MIG slices per node) |
+| `g` | `cbe-g5-*`, `cbe-g4-*`, `cbe-g3-*` | 192 (g5); 64 with SMT (g3, g4) | about 1.5 TB (g5), 503 GB (g4), 188 GB (g3) | 7,600 MB | B200, A100, or RTX 6000, whole or as MIG slices (see GPUs below) |
 | `m` | `cbe-m3-[1-4]` | 160 (4× Intel Xeon Platinum 8460H) | about 7.9 TB | 3,800 MB | none |
 
 - Use partition `m` only for jobs that need more memory than a `c` node has (about 754 GB). Slurm rejects `m` jobs without an explicit memory request of at least 700,000 MB per node (`--mem`) or 21,875 MB per CPU (`--mem-per-cpu`), for example `--mem=2T`.
-- No node uses SMT, so one Slurm CPU is one physical core.
+- `c`, `m`, and g5 nodes don't use SMT, so one Slurm CPU is one physical core. g3 and g4 nodes use SMT (2 threads per core), so there one Slurm CPU is one hardware thread, and 64 CPUs are 32 cores.
 - Slurm rejects `--mem=0`, `--mem-per-cpu=0`, and `--mem-per-gpu=0` (all memory) on every partition, `g` jobs that request no GPU, jobs named `MAINT`, and jobs that pass more than 10 arguments, or more than 1,024 characters of arguments, to their job script.
 - A single-node `c` job above 10,000 MB per core gets a warning that suggests `m`; follow it only if the job needs more than a `c` node has.
 - The partition `grid` (`cbe-c3-[13-18]`, QOS `grid_generic`) is open only to the grid experiment groups; `sinfo` doesn't show it to other users. It receives grid pilots routed by the Vienna Tier-2's compute element, not `sbatch` jobs from users. For grid submission, use the `grid-jobs` skill from the `grid` plugin, if installed.
@@ -67,7 +67,7 @@ Partitions have no time limit; the QOS sets the maximum run time, per-user and t
 | `long` | 14 days | low | Jobs that can't be split or checkpointed |
 | `interactive` | 12 hours | highest | Interactive sessions; OpenOnDemand sessions get it automatically; per user at most 5 jobs, 48 CPUs, 2 GPUs (full and MIG together), and 1,000 GB memory |
 
-- Caps on running jobs: `c_short` 1,152 CPUs and about 4,300 GB per user; `c_medium` 460 CPUs and about 1,720 GB per user, 1,152 CPUs and about 4,300 GB in total; `c_long` 230 CPUs and about 860 GB per user, 460 CPUs and about 1,720 GB in total; `g_medium` 16 full B200s, 112 MIG slices, 768 CPUs, and about 5,740 GB; `g_long` 8 full B200s, 56 MIG slices, 384 CPUs, and about 2,870 GB (for `g`, per user and in total alike). `rapid`, the other `short` levels, and all `m` levels have no caps.
+- Caps on running jobs: `c_short` 1,152 CPUs and about 4,300 GB per user; `c_medium` 460 CPUs and about 1,720 GB per user, 1,152 CPUs and about 4,300 GB in total; `c_long` 230 CPUs and about 860 GB per user, 460 CPUs and about 1,720 GB in total; `g_medium` 16 whole GPUs, 112 MIG slices, 768 CPUs, and about 5,740 GB; `g_long` 8 whole GPUs, 56 MIG slices, 384 CPUs, and about 2,870 GB (for `g`, per user and in total alike; whole GPUs count B200, A100, and RTX 6000 together). `rapid`, the other `short` levels, and all `m` levels have no caps.
 - A job over its QOS time limit is rejected at submission. Jobs over a cap wait with `QOSMax*PerUser` (the user's own jobs) or `QOSGrp*` (the tier is full).
 - Read live values with `sacctmgr show qos format=Name,Priority,MaxWall,MaxTRESPU%60,GrpTRES%60` and `showuserlimits`.
 
@@ -92,17 +92,29 @@ Create `logs/` before submitting. For arrays, use `--array=0-N%K` and `--output=
 Interactive: `salloc --qos=interactive --time=00:30:00 --cpus-per-task=1 --mem=2G`. On CBE.next, `salloc` without a command opens a shell directly on the compute node; `exit` ends the allocation.
 
 - Jobs without a batch script (`salloc`, `srun` outside a job) are limited to 4 hours, whatever `--time` says. For longer interactive work, use OpenOnDemand.
-- On weekdays from 09:00 to 17:00, the reservations `interactive` (96 cores on `cbe-c3-2`) and `interactive_gpu` (24 cores and 7 MIG slices on `cbe-g5-8`) keep resources free for interactive jobs. The submit hook adds the partition's reservation to every job with `--qos=interactive`, and sets `--qos=interactive` on jobs that request either reservation, so one of the two options is enough. The reservations are flexible: such jobs can also start outside these hours or on other nodes.
+- On weekdays from 09:00 to 17:00, the reservations `interactive` (96 cores on `cbe-c3-2`) and `interactive_gpu` (24 cores and 7 B200 MIG slices on one g5 node; `scontrol show res interactive_gpu` shows which) keep resources free for interactive jobs. The submit hook adds the partition's reservation to every job with `--qos=interactive`, and sets `--qos=interactive` on jobs that request either reservation, so one of the two options is enough. The reservations are flexible: such jobs can also start outside these hours or on other nodes.
 - A GPU session: `salloc --partition=g --qos=interactive --gres=gpu:nvidia_b200_1g.23gb:1 --time=01:00:00 --cpus-per-task=4 --mem=16G`.
 
 ## GPUs (partition `g`)
 
-- Always request a typed GPU. An untyped `--gres=gpu:1` gets whatever type is free.
-  - `--gres=gpu:nvidia_b200:N`: full B200 (about 180 GB). Use it for multi-GPU/NCCL/NVLink work or large training runs.
-  - `--gres=gpu:nvidia_b200_1g.23gb:1`: MIG slice (23 GB), for single-GPU inference, small models, or development. Never use several MIG slices for multi-GPU communication.
+Each node has either whole GPUs (feature `fullgpu`) or MIG slices (feature `mig`), never both:
+
+| GRES type | GPU | Node group | Features | Use for |
+|---|---|---|---|---|
+| `nvidia_b200` | whole B200, about 180 GB, 8 per node, NVLink | g5 | `b200`, `fullgpu` | Large training runs, multi-GPU/NCCL work |
+| `nvidia_a100-sxm4-40gb` | whole A100, 40 GB, 4 per node, NVLink | g4 | `a100`, `fullgpu` | Training and inference that fit in 40 GB, multi-GPU work within a node |
+| `quadro_rtx_6000` | whole Quadro RTX 6000, 24 GB, 4 per node | g3 | `rtx6000`, `fullgpu` | Small models, inference, visualisation |
+| `nvidia_b200_1g.23gb` | B200 MIG slice, 23 GB, 56 per node | g5 | `b200`, `mig` | Single-GPU inference, small models, development |
+| `nvidia_a100_3g.20gb` | A100 MIG slice, 20 GB, 8 per node | g4 | `a100`, `mig` | Single-GPU inference, small models, development |
+
+- Request a GPU type (`--gres=gpu:nvidia_a100-sxm4-40gb:2`) or constrain an untyped request with features. An untyped `--gres=gpu:1` without a constraint gets whatever is free, which can be a MIG slice.
+  - Any whole GPU: `--gres=gpu:1 --constraint=fullgpu`.
+  - A choice of types: `--gres=gpu:1 --constraint="fullgpu&(a100|b200)"`. Use features rather than `--nodelist` or `--exclude`; the nodes change as legacy GPU nodes move to CBE.next.
+- Pick the smallest GPU that fits: smaller GPUs and slices cost less fair-share (see `cbe-queue`) and usually start sooner.
+- Never use several MIG slices for multi-GPU communication. Multi-GPU jobs need whole B200 or A100 GPUs.
 - Set `--cpus-per-task` and `--mem` explicitly; a GPU request doesn't reserve them.
 - If you request GPUs per node, socket, or task (for example `--gpus-per-task`), also set `--ntasks`.
-- Check the current layout with `sinfo -p g -o "%N %G"`. Inside the job, verify with `nvidia-smi -L` and `echo $CUDA_VISIBLE_DEVICES`.
+- Check the current nodes, GRES types, and features with `sinfo -p g -N -o "%N %G %f"`. Inside the job, verify with `nvidia-smi -L` and `echo $CUDA_VISIBLE_DEVICES`.
 - Containers: use `apptainer exec --nv`. Never use `--cleanenv` on GPU nodes; it drops `CUDA_VISIBLE_DEVICES`. If a clean environment is needed, pass `--env CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}"`.
 
 ## Software

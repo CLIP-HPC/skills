@@ -1,6 +1,6 @@
 ---
 name: cbe-tuning
-description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data (sacct, jobeff, jobinfo) and small parameter sweeps. Use for slow jobs, shortening queue waits by right-sizing requests, over- or under-requested CPU, memory, GPU, or time, thread settings, job arrays for trivially parallel work, storage I/O bottlenecks, full B200 versus MIG choice, and scaling or parallelising a workload; use cbe-queue to explain priority and job start order, and cbe-triage for failed jobs."
+description: "Improve Slurm job performance and resource efficiency on CBE.next using measured accounting data (sacct, jobeff, jobinfo) and small parameter sweeps. Use for slow jobs, shortening queue waits by right-sizing requests, over- or under-requested CPU, memory, GPU, or time, thread settings, job arrays for trivially parallel work, storage I/O bottlenecks, GPU type choice (B200, A100, RTX 6000, or a MIG slice), and scaling or parallelising a workload; use cbe-queue to explain priority and job start order, and cbe-triage for failed jobs."
 metadata:
   display-name: "CBE job tuning"
   short-description: "Tune Slurm resources using measured job performance"
@@ -48,12 +48,12 @@ Look for:
 - **Queue wait** (`sacct ... --format=Submit,Start`). Long waits often mean oversized requests, not a busy cluster; to explain priority and fair-share, use the `cbe-queue` skill.
 - **Variation** across inputs of different sizes. That suggests sizing per input class.
 
-Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes have 192 cores, about 1.5 TB (7,600 MB per CPU by default), and 8 B200 GPUs, of which 4 are whole (about 180 GB each) and 4 are split into 28 MIG slices of 23 GB. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and request at least 700,000 MB per node with `--mem`, or Slurm rejects the job. No node uses SMT, so one Slurm CPU is one physical core. A request should fit comfortably in one node unless the job is genuinely multi-node.
+Node sizes: `c` nodes have 192 cores and about 754 GB (3,800 MB per CPU by default). `g` nodes default to 7,600 MB per CPU and come in three groups, each node with either whole GPUs or MIG slices: g5 nodes have 192 cores, about 1.5 TB, and 8 B200 GPUs, either whole (about 180 GB each) or split into 56 MIG slices of 23 GB; g4 nodes have 64 CPUs, about 503 GB, and 4 A100 GPUs of 40 GB, either whole or split into 8 MIG slices of 20 GB; g3 nodes have 64 CPUs, about 188 GB, and 4 Quadro RTX 6000 GPUs of 24 GB. `m` nodes have 160 cores and about 7.9 TB; use them only when a job needs more memory than a `c` node, and request at least 700,000 MB per node with `--mem`, or Slurm rejects the job. `c`, `m`, and g5 nodes don't use SMT, so one Slurm CPU is one physical core; g3 and g4 nodes use SMT, so one Slurm CPU is one hardware thread, and 64 CPUs are 32 cores. `sinfo -p g -N -o "%N %G %f"` lists the current GPU nodes. A request should fit comfortably in one node unless the job is genuinely multi-node.
 
 Limits that right-sizing must respect:
 
 - Time: without `--qos`, jobs get `short` (8 hours); `--qos=medium` allows 2 days and `--qos=long` 14 days. A `--time` above the QOS maximum is rejected at submission, so a longer measured runtime needs a QOS change, not only a larger `--time`.
-- Per-user QOS caps on CPUs, memory, and GPUs (for example `c_long` 230 CPUs, `g_long` 8 full B200s or 56 MIG slices) make jobs wait with `QOSMax*PerUser`; `showuserlimits` shows them.
+- Per-user QOS caps on CPUs, memory, and GPUs (for example `c_long` 230 CPUs, `g_long` 8 whole GPUs of any type or 56 MIG slices) make jobs wait with `QOSMax*PerUser`; `showuserlimits` shows them.
 - `--mem=0` is rejected; request the measured memory.
 
 For a job that is running now, `psjob <job-id>` gives a first look at its processes from the login node. Then observe it on its compute node: threads actually busy, memory against the limit, processes waiting on I/O, and GPU utilisation. Follow `cbe-triage` step 4a. Identify the job's processes with `SLURMD_NODENAME=$(hostname -s) scontrol listpids <job-id>`, not by name, because other jobs share the node. The job's cgroup gives the memory and CPU figures; its directory has an internal name, so take it from one of those PIDs as `cbe-triage` shows. Observe read-only, with a few samples.
@@ -72,7 +72,7 @@ For a job that is running now, `psjob <job-id>` gives a first look at its proces
 | Avoid `/groups` hot spots | Many tasks writing into one folder | One output subfolder per task |
 | File layout | Huge numbers of small files, or files over 1 TB | Pack small files (`tar`, HDF5, Zarr); keep fewer than 10,000 files directly in one folder; split large outputs |
 | Wider striping | Very large files read or written by many nodes at once | Ask the user to request it from support |
-| GPU choice | GPU memory need is small, or the GPU is idle much of the time | Use a MIG slice (`gpu:nvidia_b200_1g.23gb`, 23 GB) instead of a full B200; set CPUs and memory explicitly |
+| GPU choice | GPU memory need is small, or the GPU is idle much of the time | Use the smallest GPU that fits instead of a full B200: a MIG slice (`nvidia_b200_1g.23gb`, 23 GB, or `nvidia_a100_3g.20gb`, 20 GB), an RTX 6000 (`quadro_rtx_6000`, 24 GB), or an A100 (`nvidia_a100-sxm4-40gb`, 40 GB). If any whole GPU will do, use `--gres=gpu:N --constraint=fullgpu`. Set CPUs and memory explicitly |
 | Container overhead | Image pulled per job | Pull once to a `.sif` in `$HOME` or `/groups`, or use an image from `/cvmfs` |
 
 Per-job `/tmp` (`$TMPDIR`) and `$SCRATCHDIR` are on the same fast BeeGFS filesystem. Use `/tmp` for files that should disappear with the job, and `$SCRATCHDIR` for data shared between jobs or steps. `/dev/shm` is faster still, but it's part of the job's memory. Use it for many small files created and deleted in a tight loop, or small caches, and add its size to `--mem`.
@@ -111,7 +111,7 @@ If the user agrees:
 - Use the MPI build of the application from the module stacks (`module spider`), and launch it with `srun`.
 - Request `--nodes`, `--ntasks-per-node`, and `--cpus-per-task` deliberately.
 - Don't set `UCX_NET_DEVICES` or `NCCL_IB_HCA`. Slurm sets them for the 400 Gbit/s RoCE network, and overriding them falls back to slower paths.
-- For multi-GPU NCCL, use full `gpu:nvidia_b200` GPUs. MIG slices can't communicate with each other.
+- For multi-GPU NCCL, use whole GPUs: `nvidia_b200` (8 per g5 node) or `nvidia_a100-sxm4-40gb` (4 per g4 node), both NVLink-connected within a node. MIG slices can't communicate with each other.
 - Validate on 2 nodes with a small case before scaling. Measure scaling efficiency the same way as a sweep.
 
 ## 6. Present the plan
