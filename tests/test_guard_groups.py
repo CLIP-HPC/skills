@@ -141,6 +141,31 @@ class GuardGroups(unittest.TestCase):
                                cwd=self.other)["permissionDecisionReason"]
         self.assertIn("may be on the ssh host", reason)
 
+    def test_split_word_false_positives(self):
+        # A "/" cut out of longer text (")/'" or "'/^$/d'") is not a path.
+        heredoc = "cat >> notes.md <<'EOF'\ntext\nEOF\n"
+        self.assertAllows(heredoc + "sed -i 's/a build/b archs (2026-11-10)/' notes.md", cwd=self.other)
+        self.assertAllows(heredoc + "sed -i 's/x/y)/' notes.md", cwd=self.other)
+        self.assertAllows(heredoc + "sed -i 's/x/y]/' notes.md", cwd=self.other)
+        self.assertAllows(heredoc + "sed -i 's/x/y,/' notes.md", cwd=self.other)
+        self.assertAllows(heredoc + 'sed -i "s/x/y)/" notes.md', cwd=self.other)
+        self.assertAllows(heredoc + "sed -i '/^$/d' notes.md", cwd=self.other)
+        self.assertAllows("n=$(wc -l < f); sed '/^$/d' f > g; rm a", cwd=self.other)
+
+    def test_split_word_still_asks(self):
+        heredoc = "cat >> notes.md <<'EOF'\ntext\nEOF\n"
+        # A "/" written on its own, or fully quoted, still counts.
+        self.assertAsks(heredoc + "echo '(see /)' >> notes.md; sed -i 's/a/b/' notes.md", cwd=self.other)
+        self.assertAsks("python3 -c \"import shutil; shutil.rmtree('/')\"", cwd=self.other)
+        self.assertAsks("python3 -c 'import os; os.rename(a,\"/\")'", cwd=self.other)
+        self.assertAsks("python3 -c \"import shutil; shutil.rmtree(['/'][0])\"", cwd=self.other)
+        self.assertAsks('python3 -c "import os; os.remove(\\"/\\"+p)"', cwd=self.other)
+        self.assertAsks("python3 -c \"import os; os.system('rm -rf /')\"", cwd=self.other)
+        self.assertAsks("find / -name x | xargs rm -f", cwd=self.other)
+        # The same false-positive commands run inside /groups still ask.
+        self.assertAsks(heredoc + "sed -i 's/x/y)/' notes.md", cwd=self.lab)
+        self.assertAsks(heredoc + "sed -i '/^$/d' notes.md", cwd=self.lab)
+
     def test_file_tools(self):
         existing = os.path.join(self.lab, "results.txt")
         self.assertIsNotNone(self.run_hook(None, tool="Write", tool_input={"file_path": existing, "content": "x"}))

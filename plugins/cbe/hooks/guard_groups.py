@@ -513,7 +513,17 @@ def stdin_targets(cmd, ctx, whole):
 def context_targets(reason, ctx, whole):
     """Targets we can't see: ask if the command names or runs in a protected path."""
     named = {}
-    for t in re.findall(r"[~\w./${}:\"'-]+", whole):
+    for m in re.finditer(r"[~\w./${}:\"'-]+", whole):
+        t = m.group(0)
+        # A word glued to the text around it, such as "/'" in "(2026-11-10)/'" or
+        # "'/" in "'/^$/d'", is a piece the word pattern cut out of longer text,
+        # not a path someone wrote. A fully quoted word ('/' or "/") is written on
+        # purpose, even inside code such as rmtree('/') or os.rename(a,"/").
+        before = whole[m.start() - 1] if m.start() > 0 else " "
+        after = whole[m.end()] if m.end() < len(whole) else " "
+        quoted = len(t) >= 2 and t[0] in "\"'" and t[-1] == t[0]
+        fragment = not quoted and (before not in " \t\n;&|(=<>\\"
+                                   or after not in " \t\n;&|)<>\\")
         t = t.replace('"', "").replace("'", "")  # "$d"/ is one word
         if "/" not in t or "://" in t or t.startswith("//") or is_remote(t):
             continue  # URLs, comments, and host:path aren't local paths
@@ -522,8 +532,9 @@ def context_targets(reason, ctx, whole):
             if not protected(p, ctx):
                 continue
             # A path that only became an ancestor of a root, such as "/", because a
-            # variable was dropped ("$d/") says nothing about where the command writes.
-            if ("$" in t or "`" in t or unresolved) and not any(inside(p, r) for r in ctx.roots):
+            # variable was dropped ("$d/") or because the word is a fragment of other
+            # text (")/'") says nothing about where the command writes.
+            if ("$" in t or "`" in t or unresolved or fragment) and not any(inside(p, r) for r in ctx.roots):
                 continue
             named.setdefault(p, t)
     if named or protected(ctx.cwd, ctx):
