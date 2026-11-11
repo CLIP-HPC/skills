@@ -88,12 +88,14 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 | `--partition=c` | `c`, the default; the line can stay or go |
 | `--partition=m` | `m`: four nodes with about 7.9 TB each. Set `--mem` explicitly, at least 700,000 MB per node (for example `--mem=2T`); Slurm rejects `m` jobs with less or none. Don't move high-memory jobs to `g`. |
 | `--partition=g` | `g` |
-| `--gres=gpu:<p100\|v100\|rtx\|a100>:N`, or untyped | `--gres=gpu:nvidia_b200:N` for a full B200 (about 180 GB), or `--gres=gpu:nvidia_b200_1g.23gb:1` for a MIG slice (23 GB, single GPU only) |
+| `--gres=gpu:a100:N` | `--gres=gpu:nvidia_a100-sxm4-40gb:N` (whole A100, 40 GB) |
+| `--gres=gpu:rtx:N` | `--gres=gpu:quadro_rtx_6000:N` (Quadro RTX 6000, 24 GB) |
+| `--gres=gpu:<p100\|v100>:N`, or untyped | Pick by GPU memory: `--gres=gpu:quadro_rtx_6000:N` (24 GB), `nvidia_a100-sxm4-40gb` (40 GB), `nvidia_b200` (about 180 GB), or a MIG slice `nvidia_b200_1g.23gb` / `nvidia_a100_3g.20gb` (single GPU only). If any whole GPU will do, use `--gres=gpu:N --constraint=fullgpu`; an untyped request without it can get a MIG slice. |
 | `--qos=c_short`, `m_long`, `g_rapid`, and similar | Write the level only: `--qos=short`, `--qos=long`, `--qos=rapid`. A submit hook rewrites it to the QOS of the partition, for example `--partition=m --qos=long` runs as `m_long`. The run times are the same (`rapid` 1 h, `short` 8 h, `medium` 2 days, `long` 14 days), and the prefixed names still work. The per-QOS resource caps differ from legacy CBE (see the `cbe-next` skill). Without `--qos`, jobs get `short`. |
 | `--qos=grid_generic` | Don't carry over. On CBE.next, the partition `grid` only receives pilots routed by the Vienna Tier-2's compute element. Submit grid work through the experiment's tools (the `grid-jobs` skill from the `grid` plugin, if installed); run local analysis in partition `c` with an ordinary QOS. |
 | implicit time limit from QOS | Always set an explicit `--time` within the QOS limit. Carry over the old effective limit, or better, measured runtime plus a margin, and choose the shortest QOS that fits it. |
-| `--nodelist`, `--exclude`, `--constraint` with `clip-c*`, `clip-g*`, `clip-m*` | Remove. Request generic resources. |
-| `--reservation=...` (interactive) | `--qos=interactive`; the submit hook adds the reservation `interactive` (partition `c`) or `interactive_gpu` (partition `g`, MIG slices), which hold resources on weekdays from 09:00 to 17:00. |
+| `--nodelist`, `--exclude`, `--constraint` with `clip-c*`, `clip-g*`, `clip-m*` | Remove. Request generic resources. GPU feature constraints are valid on `g`: `b200`, `a100`, `rtx6000`, `fullgpu`, `mig` (for example `--constraint="fullgpu&(a100\|b200)"`). |
+| `--reservation=...` (interactive) | `--qos=interactive`; the submit hook adds the reservation `interactive` (partition `c`) or `interactive_gpu` (partition `g`, B200 MIG slices on one g5 node), which hold resources on weekdays from 09:00 to 17:00. |
 | `srun --pty bash` for interactive work | `salloc --qos=interactive --time=<t> --cpus-per-task=<n> --mem=<m>`, which opens a shell on the compute node. Sessions without a batch script are limited to 4 hours; use OpenOnDemand for longer ones. |
 | implicit default account | Jobs use the user's default Slurm account. Users in several labs or groups add `-A <account>`. |
 | `--mail-type`, `--mail-user` | No effect; there's no mail. Use `--dependency=afterok:<id>` for follow-up work, or tell the user to check `squeue --me` or `jobinfo`. |
@@ -103,7 +105,7 @@ Review the whole `#SBATCH` block. Don't assume it runs unchanged.
 - Node sizes changed a lot. Legacy regular nodes had 22 or 38 virtual cores and 85 or 170 GB. CBE.next `c` nodes have 192 cores and about 754 GB, with a default of 3,800 MB per CPU.
 - Re-check `--nodes`, `--ntasks-per-node`, and `--mem`. Make memory explicit if the job relied on a legacy default.
 - For GPU jobs, set `--cpus-per-task` and `--mem` explicitly; a GPU request doesn't reserve them.
-- MIG slices can't talk to each other. Multi-GPU jobs need full `nvidia_b200` GPUs.
+- MIG slices can't talk to each other. Multi-GPU jobs need whole `nvidia_b200` or `nvidia_a100-sxm4-40gb` GPUs.
 - Don't set `UCX_NET_DEVICES` or `NCCL_IB_HCA` in ported MPI or NCCL scripts; Slurm sets them.
 
 ## Software
