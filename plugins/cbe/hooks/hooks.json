@@ -1,5 +1,5 @@
 {
-  "description": "Ask before commands and file edits that delete, move, or overwrite data under /groups, also through ssh",
+  "description": "Ask before commands and file edits that delete, move, or overwrite data under /groups or /eos, also through ssh",
   "hooks": {
     "PreToolUse": [
       {

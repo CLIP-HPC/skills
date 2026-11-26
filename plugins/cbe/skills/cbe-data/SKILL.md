@@ -23,7 +23,8 @@ Facts below reflect the docs as of 2026-10-29 and the cluster tools as of 2026-1
 - Group data belongs to the whole group. A path inside someone else's `user/<name>` folder, or in `lab`, isn't yours to clean up.
 - Never use a `/groups` path as the target of a destructive glob or variable that might be empty, for example `rm -rf "$OUTDIR"/`. Check the variable first.
 - Snapshots and backups exist, but they don't make deletion safe: restores take time, and the newest changes may not be captured yet.
-- When installed as a Claude Code plugin, `cbe` also adds a hook that asks the user before commands and file edits that delete, move, or overwrite paths under `/groups`, also when they run through `ssh`. It is a safety net, not a substitute for asking first: if it prompts, you skipped a step.
+- The same confirmation rule applies to `/eos`, which has no snapshots and no backup. For EOS-native clients (`eos rm`, `xrdfs rm`, `xrdcp --force`, `gfal-rm`), follow the `grid-data` skill from the `grid` plugin, if installed.
+- When installed as a Claude Code plugin, `cbe` also adds a hook that asks the user before commands and file edits that delete, move, or overwrite paths under `/groups` or `/eos`, also when they run through `ssh`. For `/eos` it sees only paths through the FUSE mount, not the EOS-native clients. It is a safety net, not a substitute for asking first: if it prompts, you skipped a step.
 
 ### Before deleting in `/groups`
 

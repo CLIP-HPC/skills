@@ -111,12 +111,15 @@ claude plugin update grid@clip-hpc    # if installed
 ```
 
 In Claude Code, the plugin also adds a hook that asks before Bash commands and
-file edits that delete, move, or overwrite files under `/groups`. It also checks
+file edits that delete, move, or overwrite files under `/groups` or `/eos`. It also checks
 commands sent with `ssh <host> '...'`, so it protects the cluster when Claude Code
 runs on your own computer. The prompt lists the affected paths with their size,
-file count, owner, and whether they changed after the newest snapshot. It uses
+file count, owner, and whether they changed after the newest snapshot. For `/eos`,
+the hook checks only paths through the EOS FUSE mount: the `eos`, `xrdcp`, `xrdfs`,
+and `gfal-*` clients address EOS by URL and aren't checked. It uses
 `python3` from `PATH` and does nothing without it. Set `CBE_GROUPS_GUARD=off` to disable it,
-or `CBE_PROTECTED_PATHS` to a colon-separated list of other roots to protect.
+or `CBE_PROTECTED_PATHS` to a colon-separated list of roots to protect instead
+(default `/groups:/eos`).
 Codex and the skill-only installation don't include the hook. The `grid`
 plugin has no hook.
 

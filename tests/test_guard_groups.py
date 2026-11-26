@@ -29,7 +29,11 @@ class GuardGroups(unittest.TestCase):
     def run_hook(self, command, cwd=None, extra_env=None, tool="Bash", tool_input=None):
         env = dict(os.environ, CBE_PROTECTED_PATHS=self.groups, LAB=self.lab)
         env.pop("CBE_GROUPS_GUARD", None)
-        env.update(extra_env or {})
+        for key, value in (extra_env or {}).items():
+            if value is None:
+                env.pop(key, None)
+            else:
+                env[key] = value
         event = {"tool_name": tool, "tool_input": tool_input or {"command": command}, "cwd": cwd or self.lab}
         r = subprocess.run([sys.executable, "-I", HOOK], input=json.dumps(event),
                            capture_output=True, text=True, env=env, timeout=10)
@@ -212,6 +216,26 @@ class GuardGroups(unittest.TestCase):
         os.makedirs(os.path.join(self.groups, ".snapshot", "hourly.2000-01-01_0000"))
         reason = self.run_hook("rm -r experiment")["permissionDecisionReason"]
         self.assertIn("changed after the latest snapshot hourly.2000-01-01_0000", reason)
+
+    def test_default_roots_include_eos(self):
+        # Without CBE_PROTECTED_PATHS the hook protects /groups and /eos. Remote paths
+        # can't be inspected, so they don't need to exist on the test machine.
+        default = {"CBE_PROTECTED_PATHS": None}
+        reason = self.run_hook("ssh cbe.next 'rm -r /eos/vbc/group/mygroup/run1'",
+                               extra_env=default)["permissionDecisionReason"]
+        self.assertIn("/eos/vbc/group/mygroup/run1", reason)
+        self.assertIn("EOS has no snapshots", reason)
+        self.assertNotIn("/groups snapshots", reason)
+        reason = self.run_hook("ssh cbe.next 'rm -r /groups/lab/alice/old'",
+                               extra_env=default)["permissionDecisionReason"]
+        self.assertIn("/groups snapshots are only hourly", reason)
+        self.assertNotIn("EOS has no snapshots", reason)
+        self.assertAllows("ssh cbe.next 'rm -r /scratch/alice/tmp'", extra_env=default)
+
+    def test_custom_root_prompt(self):
+        reason = self.run_hook("rm %s/x.tmp" % self.other,
+                               extra_env={"CBE_PROTECTED_PATHS": self.other})["permissionDecisionReason"]
+        self.assertIn("may not be recoverable", reason)
 
     def test_disable(self):
         self.assertIsNone(self.run_hook("rm -r experiment", extra_env={"CBE_GROUPS_GUARD": "off"}))
