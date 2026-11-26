@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """PreToolUse hook: ask before commands and file edits that delete, move, or
-overwrite data under protected storage (by default /groups) on CBE.next.
+overwrite data under protected storage (by default /groups and /eos) on CBE.next.
 
 Reads the hook event as JSON on stdin. When a Bash command, or a Write, Edit,
 or NotebookEdit call, would touch a protected path, it prints a PreToolUse
@@ -16,8 +16,12 @@ The parse is deliberately conservative: when a target can't be resolved
 (unset variables, command substitution, inline interpreter code) and the
 command runs in or names a protected path, it asks.
 
+/eos is checked as a filesystem path, that is, through the EOS FUSE mount.
+EOS-native clients (eos, xrdcp, xrdfs, gfal-*) address EOS by URL and are not
+checked; the grid-data skill covers them.
+
 Environment:
-  CBE_PROTECTED_PATHS  colon-separated roots to protect (default: /groups)
+  CBE_PROTECTED_PATHS  colon-separated roots to protect (default: /groups:/eos)
   CBE_GROUPS_GUARD     set to "off" to disable the hook
 """
 
@@ -30,7 +34,15 @@ import shlex
 import sys
 import time
 
-DEFAULT_ROOTS = "/groups"
+DEFAULT_ROOTS = "/groups:/eos"
+
+# Why data under a known root is hard to get back; shown in the prompt.
+ROOT_NOTES = {
+    "/groups": "Group data belongs to the whole group, and /groups snapshots are only "
+               "hourly, so recent files may not be recoverable.",
+    "/eos": "EOS has no snapshots and no backup, so deleted or overwritten files "
+            "can't be restored.",
+}
 
 # Commands whose path arguments are deleted, moved, or overwritten.
 REMOVE_CMDS = {"rm", "rmdir", "unlink", "shred"}
@@ -715,11 +727,14 @@ def decide(event):
         if info:
             line += "\n      " + info
         lines.append(line)
+    hit_roots = [r for r in roots if any(under(p.split("  (")[0], r) for _, p, _ in ctx.hits)]
+    notes = [ROOT_NOTES[r] for r in hit_roots if r in ROOT_NOTES]
+    if not notes:
+        notes = ["Data under %s may not be recoverable." % ", ".join(hit_roots or roots)]
     reason = (
-        "cbe: this would delete, move, or overwrite group data under %s:\n%s\n"
-        "Group data belongs to the whole group, and /groups snapshots are only hourly, "
-        "so recent files may not be recoverable. Approve only if exactly these paths "
-        "should change." % (", ".join(roots), "\n".join(lines[:20]))
+        "cbe: this would delete, move, or overwrite data under %s:\n%s\n"
+        "%s Approve only if exactly these paths should change."
+        % (", ".join(hit_roots or roots), "\n".join(lines[:20]), " ".join(notes))
     )
     if len(lines) > 20:
         reason += "\n  ... and %d more" % (len(lines) - 20)
